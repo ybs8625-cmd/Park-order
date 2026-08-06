@@ -312,6 +312,51 @@ th {
 
 .product-form .full { display: grid; gap: 6px; }
 
+.check-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.check-pill input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.check-pill:has(input:checked) {
+  border-color: var(--accent);
+  background: #e7f5f2;
+  color: var(--accent);
+}
+
+.custom-add-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.custom-add-row input {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: #fff;
+}
+
 .image-row {
   display: flex;
   gap: 12px;

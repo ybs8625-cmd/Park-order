@@ -4,12 +4,18 @@
   const GITHUB_API = "https://api.github.com";
   const DEFAULT_OWNER = "ybs8625-cmd";
   const DEFAULT_REPO = "Park-order";
-  const DEFAULT_SIZES = [
+  const SIZE_OPTIONS = [
+    { id: "XS", label: "XS (85)" },
     { id: "S", label: "S (90)" },
     { id: "M", label: "M (95)" },
     { id: "L", label: "L (100)" },
     { id: "XL", label: "XL (105)" },
     { id: "XXL", label: "XXL (110)" },
+  ];
+  const DEFAULT_SIZES = SIZE_OPTIONS.filter((s) => s.id !== "XS");
+  const COLOR_PRESETS = [
+    { id: "black", name: "블랙" },
+    { id: "white", name: "화이트" },
   ];
   const COLOR_IDS = {
     블랙: "black",
@@ -61,8 +67,10 @@
     pImage: document.getElementById("pImage"),
     pImageFile: document.getElementById("pImageFile"),
     pImagePreview: document.getElementById("pImagePreview"),
-    pColors: document.getElementById("pColors"),
-    pSizes: document.getElementById("pSizes"),
+    colorChecks: document.getElementById("colorChecks"),
+    sizeChecks: document.getElementById("sizeChecks"),
+    customColorInput: document.getElementById("customColorInput"),
+    addColorBtn: document.getElementById("addColorBtn"),
     stockGrid: document.getElementById("stockGrid"),
   };
 
@@ -76,6 +84,7 @@
     adminSha: null,
     orders: [],
     editingProduct: null,
+    extraColors: [],
   };
 
   function money(n) {
@@ -568,13 +577,6 @@
     renderProducts();
   }
 
-  function parseList(text) {
-    return String(text || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-
   function colorIdFromName(name, existing = []) {
     const found = existing.find((c) => c.name === name || c.id === name);
     if (found) return found.id;
@@ -585,45 +587,83 @@
       .replace(/[^a-z0-9가-힣-]/g, "") || `color-${Date.now()}`;
   }
 
-  function parseColors(text, existing = []) {
-    return parseList(text).map((name) => {
-      const found = existing.find((c) => c.name === name || c.id === name);
-      if (found) return { ...found, name: found.name || name };
+  function allColorOptions() {
+    const map = new Map();
+    COLOR_PRESETS.forEach((c) => map.set(c.id, { ...c }));
+    state.extraColors.forEach((c) => map.set(c.id, { ...c }));
+    return [...map.values()];
+  }
+
+  function renderColorChecks(selectedIds = ["black", "white"]) {
+    const selected = new Set(selectedIds);
+    els.colorChecks.innerHTML = allColorOptions()
+      .map(
+        (c) => `
+      <label class="check-pill">
+        <input type="checkbox" name="colorOpt" value="${c.id}" data-name="${c.name}" ${selected.has(c.id) ? "checked" : ""} />
+        <span>${c.name}</span>
+      </label>`
+      )
+      .join("");
+  }
+
+  function renderSizeChecks(selectedIds = ["S", "M", "L", "XL", "XXL"]) {
+    const selected = new Set(selectedIds);
+    els.sizeChecks.innerHTML = SIZE_OPTIONS.map(
+      (s) => `
+      <label class="check-pill">
+        <input type="checkbox" name="sizeOpt" value="${s.id}" ${selected.has(s.id) ? "checked" : ""} />
+        <span>${s.id}</span>
+      </label>`
+    ).join("");
+  }
+
+  function readSelectedColors(existing = []) {
+    return [...els.colorChecks.querySelectorAll('input[name="colorOpt"]:checked')].map((input) => {
+      const name = input.dataset.name || input.value;
+      const found = existing.find((c) => c.id === input.value || c.name === name);
+      if (found) return { ...found, id: found.id || input.value, name: found.name || name };
       return {
-        id: colorIdFromName(name, existing),
+        id: input.value,
         name,
         image: "",
       };
     });
   }
 
-  function parseSizes(text, existing = []) {
-    return parseList(text).map((part) => {
-      const found = existing.find((s) => s.label === part || s.id === part);
-      if (found) return found;
-      const m = part.match(/^([A-Za-z0-9]+)\s*\((.+)\)$/) || part.match(/^([A-Za-z0-9]+)$/);
-      if (!m) return { id: part, label: part };
-      const id = m[1];
-      const label = m[2] ? `${id} (${m[2]})` : id;
-      return { id, label };
+  function readSelectedSizes(existing = []) {
+    return [...els.sizeChecks.querySelectorAll('input[name="sizeOpt"]:checked')].map((input) => {
+      const opt = SIZE_OPTIONS.find((s) => s.id === input.value);
+      const found = existing.find((s) => s.id === input.value);
+      if (found) return { ...found, label: found.label || opt?.label || input.value };
+      return { id: input.value, label: opt?.label || input.value };
     });
   }
 
-  function sizesToInput(sizes) {
-    return (sizes || [])
-      .map((s) => {
-        const label = s.label || s.id;
-        const m = String(label).match(/^[A-Za-z0-9]+\s*\((.+)\)$/);
-        if (m) return `${s.id}(${m[1]})`;
-        return s.id;
-      })
-      .join(",");
+  function addCustomColor() {
+    const name = els.customColorInput.value.trim();
+    if (!name) return;
+    const existing = state.editingProduct?.colors || [];
+    const id = colorIdFromName(name, [...COLOR_PRESETS, ...state.extraColors, ...existing]);
+    if (allColorOptions().some((c) => c.id === id || c.name === name)) {
+      const box = els.colorChecks.querySelector(`input[value="${id}"]`);
+      if (box) box.checked = true;
+      els.customColorInput.value = "";
+      refreshStockEditor();
+      return;
+    }
+    state.extraColors.push({ id, name });
+    const selected = readSelectedColors(existing).map((c) => c.id);
+    selected.push(id);
+    renderColorChecks(selected);
+    els.customColorInput.value = "";
+    refreshStockEditor();
   }
 
   function buildStockEditor(colors, sizes, stock) {
     els.stockGrid.innerHTML = "";
     if (!colors.length || !sizes.length) {
-      els.stockGrid.innerHTML = `<p class="msg">색상과 사이즈를 입력하면 재고표가 생성됩니다.</p>`;
+      els.stockGrid.innerHTML = `<p class="msg">색상과 사이즈를 선택하면 재고표가 생성됩니다.</p>`;
       return;
     }
     const head = document.createElement("div");
@@ -664,8 +704,8 @@
 
   function refreshStockEditor() {
     const existing = state.editingProduct;
-    const colors = parseColors(els.pColors.value, existing?.colors || []);
-    const sizes = parseSizes(els.pSizes.value, existing?.sizes || []);
+    const colors = readSelectedColors(existing?.colors || []);
+    const sizes = readSelectedSizes(existing?.sizes || []);
     const current = readStockFromEditor();
     const stock = Object.keys(current).length ? current : existing?.stock || {};
     buildStockEditor(colors, sizes, stock);
@@ -674,6 +714,7 @@
   function openProductModal(product) {
     state.editingProduct = product;
     els.productModal.hidden = false;
+    els.customColorInput.value = "";
     if (product) {
       els.modalTitle.textContent = "상품 수정";
       els.productId.value = product.id;
@@ -683,8 +724,12 @@
       els.pDesc.value = product.description || "";
       els.pImage.value = product.image || "";
       els.pImagePreview.src = productImageSrc(product.image);
-      els.pColors.value = (product.colors || []).map((c) => c.name || c.id).join(",");
-      els.pSizes.value = sizesToInput(product.sizes || DEFAULT_SIZES);
+      const presetIds = new Set(COLOR_PRESETS.map((c) => c.id));
+      state.extraColors = (product.colors || [])
+        .filter((c) => !presetIds.has(c.id))
+        .map((c) => ({ id: c.id, name: c.name || c.id }));
+      renderColorChecks((product.colors || []).map((c) => c.id));
+      renderSizeChecks((product.sizes || DEFAULT_SIZES).map((s) => s.id));
       buildStockEditor(product.colors || [], product.sizes || DEFAULT_SIZES, product.stock || {});
     } else {
       els.modalTitle.textContent = "신규 상품 등록";
@@ -692,10 +737,11 @@
       els.productId.value = "";
       els.pImage.value = "";
       els.pImagePreview.removeAttribute("src");
-      els.pColors.value = "블랙,화이트";
-      els.pSizes.value = "S(90),M(95),L(100),XL(105),XXL(110)";
       els.pPrice.value = 29000;
-      buildStockEditor(parseColors(els.pColors.value), parseSizes(els.pSizes.value), {});
+      state.extraColors = [];
+      renderColorChecks(["black", "white"]);
+      renderSizeChecks(["S", "M", "L", "XL", "XXL"]);
+      buildStockEditor(readSelectedColors(), readSelectedSizes(), {});
     }
     els.pImageFile.value = "";
   }
@@ -736,8 +782,8 @@
 
   function buildProductPayload() {
     const existing = state.editingProduct;
-    const colors = parseColors(els.pColors.value, existing?.colors || []);
-    const sizes = parseSizes(els.pSizes.value, existing?.sizes || []);
+    const colors = readSelectedColors(existing?.colors || []);
+    const sizes = readSelectedSizes(existing?.sizes || []);
     const image = els.pImage.value || existing?.image || "";
     colors.forEach((c) => {
       if (!c.image) c.image = image;
@@ -886,10 +932,15 @@
       saveProduct(e).catch((err) => alert(err.message || "저장 실패"));
     });
 
-    els.pColors.addEventListener("change", refreshStockEditor);
-    els.pSizes.addEventListener("change", refreshStockEditor);
-    els.pColors.addEventListener("blur", refreshStockEditor);
-    els.pSizes.addEventListener("blur", refreshStockEditor);
+    els.colorChecks.addEventListener("change", refreshStockEditor);
+    els.sizeChecks.addEventListener("change", refreshStockEditor);
+    els.addColorBtn.addEventListener("click", addCustomColor);
+    els.customColorInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addCustomColor();
+      }
+    });
 
     els.productsBody.addEventListener("click", (e) => {
       const editId = e.target.getAttribute("data-edit");

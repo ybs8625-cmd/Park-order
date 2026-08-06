@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./admin.css?v=3" />
+  <link rel="stylesheet" href="./admin.css?v=4" />
 </head>
 <body>
   <div class="bg"></div>
@@ -164,15 +164,19 @@
           <input type="hidden" id="pImage" />
         </label>
 
-        <label class="full">
-          <span>색상 (쉼표로 구분, 예: 블랙,화이트)</span>
-          <input id="pColors" placeholder="블랙,화이트" required />
-        </label>
+        <div class="full">
+          <span class="label">색상</span>
+          <div id="colorChecks" class="check-row"></div>
+          <div class="custom-add-row">
+            <input id="customColorInput" type="text" placeholder="추가 색상 입력 (예: 네이비)" />
+            <button type="button" class="secondary" id="addColorBtn">추가</button>
+          </div>
+        </div>
 
-        <label class="full">
-          <span>사이즈 (쉼표로 구분, 예: S(90),M(95),L(100))</span>
-          <input id="pSizes" placeholder="S(90),M(95),L(100),XL(105),XXL(110)" required />
-        </label>
+        <div class="full">
+          <span class="label">사이즈</span>
+          <div id="sizeChecks" class="check-row"></div>
+        </div>
 
         <div class="full">
           <span class="label">재고 (색상 × 사이즈)</span>
@@ -189,6 +193,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="../config.js?v=10"></script>
-  <script src="./admin.js?v=4"></script>
+  <script src="./admin.js?v=5"></script>
 </body>
 </html>
