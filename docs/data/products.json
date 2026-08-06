@@ -20,27 +20,27 @@
           "image": "./images/nike-white.svg"
         },
         {
-          "id": "navy",
-          "name": "네이비",
+          "id": "오렌지",
+          "name": "오렌지",
           "image": "./images/nike.svg"
         }
       ],
       "stock": {
         "black": {
-          "S": 0,
+          "S": 8,
           "M": 12,
           "L": 5,
           "XL": 3,
           "XXL": 2
         },
         "white": {
-          "S": 0,
-          "M": 0,
-          "L": 0,
-          "XL": 0,
-          "XXL": 0
+          "S": 6,
+          "M": 10,
+          "L": 7,
+          "XL": 4,
+          "XXL": 1
         },
-        "navy": {
+        "오렌지": {
           "S": 0,
           "M": 0,
           "L": 0,
@@ -72,9 +72,9 @@
       ],
       "images": [
         "./images/nike.svg",
-        "./images/upload-1785997997237-280a.png",
-        "./images/upload-1785998000710-3445.png",
-        "./images/upload-1785998004301-6670.png"
+        "./images/upload-1785998094634-9cd5.png",
+        "./images/upload-1785998098054-b47c.png",
+        "./images/upload-1785998102103-4b54.png"
       ]
     },
     {
