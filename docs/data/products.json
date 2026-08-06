@@ -18,22 +18,34 @@
           "id": "white",
           "name": "화이트",
           "image": "./images/nike-white.svg"
+        },
+        {
+          "id": "navy",
+          "name": "네이비",
+          "image": "./images/nike.svg"
         }
       ],
       "stock": {
         "black": {
-          "S": 8,
+          "S": 0,
           "M": 12,
           "L": 5,
           "XL": 3,
           "XXL": 2
         },
         "white": {
-          "S": 6,
-          "M": 10,
-          "L": 7,
-          "XL": 4,
-          "XXL": 1
+          "S": 0,
+          "M": 0,
+          "L": 0,
+          "XL": 0,
+          "XXL": 0
+        },
+        "navy": {
+          "S": 0,
+          "M": 0,
+          "L": 0,
+          "XL": 0,
+          "XXL": 0
         }
       },
       "sizes": [
@@ -57,6 +69,12 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/nike.svg",
+        "./images/upload-1785997997237-280a.png",
+        "./images/upload-1785998000710-3445.png",
+        "./images/upload-1785998004301-6670.png"
       ]
     },
     {
