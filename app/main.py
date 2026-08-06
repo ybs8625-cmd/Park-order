@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
+ORDERS_DIR = DATA_DIR / "orders"
 PRODUCTS_PATH = DATA_DIR / "products.yaml"
 ORDERS_PATH = DATA_DIR / "orders.yaml"
 KST = timezone(timedelta(hours=9))
@@ -32,7 +33,14 @@ def load_yaml(path: Path) -> dict[str, Any]:
 def save_yaml(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+        yaml.safe_dump(
+            data,
+            f,
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+            width=120,
+        )
 
 
 class CartItem(BaseModel):
@@ -72,14 +80,15 @@ def create_order(payload: OrderRequest) -> dict[str, Any]:
     size_ids = {s.get("id") for s in catalog_data.get("sizes") or []}
     shipping_fee = int(catalog_data.get("shipping_fee") or 3500)
 
-    # Aggregate same SKU quantities first
     aggregated: dict[tuple[str, str, str], int] = {}
     for item in payload.items:
         key = (item.product_id, item.color, item.size)
         aggregated[key] = aggregated.get(key, 0) + item.quantity
 
-    order_items: list[dict[str, Any]] = []
+    order_lines: list[dict[str, Any]] = []
     item_total = 0
+    now = datetime.now(KST)
+    order_id = now.strftime("%Y%m%d-%H%M%S") + "-" + str(uuid4())[:8]
 
     for (product_id, color, size), quantity in aggregated.items():
         product = next((p for p in products if p.get("id") == product_id), None)
@@ -114,37 +123,33 @@ def create_order(payload: OrderRequest) -> dict[str, Any]:
             size,
         )
 
-        order_items.append(
+        order_lines.append(
             {
-                "product_id": product_id,
-                "product_name": product.get("name"),
-                "brand": product.get("brand"),
-                "color": color,
-                "color_name": color_name,
-                "size": size,
-                "size_label": size_label,
-                "quantity": quantity,
-                "unit_price": unit_price,
-                "line_total": line_total,
+                "품목": f"{product.get('brand')} · {product.get('name')}",
+                "색상": color_name,
+                "사이즈": size_label,
+                "수량": quantity,
+                "단가": unit_price,
+                "금액": line_total,
             }
         )
 
     save_yaml(PRODUCTS_PATH, catalog_data)
 
     order = {
-        "id": str(uuid4()),
-        "created_at": datetime.now(KST).isoformat(timespec="seconds"),
-        "items": order_items,
-        "item_total": item_total,
-        "shipping_fee": shipping_fee,
-        "total": item_total + shipping_fee,
-        "customer": {
-            "name": payload.name,
-            "phone": payload.phone,
-            "address": payload.address,
-            "memo": payload.memo,
+        "주문번호": order_id,
+        "주문시간": now.strftime("%Y-%m-%d %H:%M:%S"),
+        "상태": "주문완료",
+        "주문자": {
+            "이름": payload.name,
+            "연락처": payload.phone,
+            "주소": payload.address,
+            "메모": payload.memo or "-",
         },
-        "status": "배송요청완료",
+        "주문내용": order_lines,
+        "상품합계": item_total,
+        "배송비": shipping_fee,
+        "결제합계": item_total + shipping_fee,
     }
 
     orders_data = load_yaml(ORDERS_PATH)
@@ -153,8 +158,13 @@ def create_order(payload: OrderRequest) -> dict[str, Any]:
     orders_data["orders"] = orders
     save_yaml(ORDERS_PATH, orders_data)
 
+    # 개별 주문 파일도 남김
+    ORDERS_DIR.mkdir(parents=True, exist_ok=True)
+    single_path = ORDERS_DIR / f"{order_id}.yaml"
+    save_yaml(single_path, order)
+
     return {
         "ok": True,
-        "message": "배송요청이 완료 되었습니다.",
+        "message": "주문이 정상적으로 완료 되었습니다.\n판매자가 연락 드리겠습니다.",
         "order": order,
     }

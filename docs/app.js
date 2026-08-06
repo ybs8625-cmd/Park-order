@@ -277,10 +277,55 @@ async function loadCatalog() {
   refreshPicker();
 }
 
+function formatOrderTime(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function orderToYaml(order) {
+  const lines = [];
+  lines.push(`주문번호: ${order["주문번호"]}`);
+  lines.push(`주문시간: ${order["주문시간"]}`);
+  lines.push(`상태: ${order["상태"]}`);
+  lines.push("주문자:");
+  lines.push(`  이름: ${order["주문자"]["이름"]}`);
+  lines.push(`  연락처: ${order["주문자"]["연락처"]}`);
+  lines.push(`  주소: ${order["주문자"]["주소"]}`);
+  lines.push(`  메모: ${order["주문자"]["메모"]}`);
+  lines.push("주문내용:");
+  for (const item of order["주문내용"]) {
+    lines.push(`  - 품목: ${item["품목"]}`);
+    lines.push(`    색상: ${item["색상"]}`);
+    lines.push(`    사이즈: ${item["사이즈"]}`);
+    lines.push(`    수량: ${item["수량"]}`);
+    lines.push(`    단가: ${item["단가"]}`);
+    lines.push(`    금액: ${item["금액"]}`);
+  }
+  lines.push(`상품합계: ${order["상품합계"]}`);
+  lines.push(`배송비: ${order["배송비"]}`);
+  lines.push(`결제합계: ${order["결제합계"]}`);
+  lines.push("");
+  return lines.join("\n");
+}
+
+function downloadYaml(order) {
+  const blob = new Blob([orderToYaml(order)], { type: "text/yaml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `주문_${order["주문번호"]}.yaml`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function buildLocalOrder(payload) {
   const shipping = state.catalog.shipping_fee || 3500;
   const items = [];
   let itemTotal = 0;
+  const now = new Date();
+  const orderId = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}-${crypto.randomUUID().slice(0, 8)}`;
 
   for (const line of payload.items) {
     const product = (state.catalog.products || []).find((p) => p.id === line.product_id);
@@ -295,40 +340,57 @@ function buildLocalOrder(payload) {
     const lineTotal = product.price * line.quantity;
     itemTotal += lineTotal;
     items.push({
-      product_id: line.product_id,
-      product_name: product.name,
-      brand: product.brand,
-      color: line.color,
-      color_name: colorName,
-      size: line.size,
-      size_label: sizeLabel,
-      quantity: line.quantity,
-      unit_price: product.price,
-      line_total: lineTotal,
+      품목: `${product.brand} · ${product.name}`,
+      색상: colorName,
+      사이즈: sizeLabel,
+      수량: line.quantity,
+      단가: product.price,
+      금액: lineTotal,
     });
   }
 
   const order = {
-    id: crypto.randomUUID(),
-    created_at: new Date().toISOString(),
-    items,
-    item_total: itemTotal,
-    shipping_fee: shipping,
-    total: itemTotal + shipping,
-    customer: {
-      name: payload.name,
-      phone: payload.phone,
-      address: payload.address,
-      memo: payload.memo,
+    주문번호: orderId,
+    주문시간: formatOrderTime(now),
+    상태: "주문완료",
+    주문자: {
+      이름: payload.name,
+      연락처: payload.phone,
+      주소: payload.address,
+      메모: payload.memo || "-",
     },
-    status: "배송요청완료",
+    주문내용: items,
+    상품합계: itemTotal,
+    배송비: shipping,
+    결제합계: itemTotal + shipping,
   };
 
   const key = "park-order-orders";
   const saved = JSON.parse(localStorage.getItem(key) || '{"orders":[]}');
   saved.orders.push(order);
   localStorage.setItem(key, JSON.stringify(saved));
-  return { ok: true, message: "배송요청이 완료 되었습니다.", order };
+  downloadYaml(order);
+  return {
+    ok: true,
+    message: "주문이 정상적으로 완료 되었습니다.\n판매자가 연락 드리겠습니다.",
+    order,
+  };
+}
+
+async function resetPage() {
+  el.form.reset();
+  addrEls.zonecode.value = "";
+  addrEls.base.value = "";
+  addrEls.detail.value = "";
+  state.cart = [];
+  state.productId = "";
+  state.color = "";
+  state.size = "";
+  state.quantity = 1;
+  el.formError.hidden = true;
+  el.layout?.classList.remove("cart-expanded");
+  await loadCatalog();
+  requestAnimationFrame(pinCart);
 }
 
 el.productSelect.addEventListener("change", () => {
@@ -549,22 +611,9 @@ el.form.addEventListener("submit", async (event) => {
       data = buildLocalOrder(payload);
     }
 
-    el.toastBody.textContent = `${data.order.items.length}개 품목 · 합계 ${won(data.order.total)}`;
+    el.toastBody.textContent = "판매자가 연락 드리겠습니다.";
     el.toast.hidden = false;
-
-    document.getElementById("name").value = "";
-    document.getElementById("phone").value = "";
-    addrEls.zonecode.value = "";
-    addrEls.base.value = "";
-    addrEls.detail.value = "";
-    document.getElementById("memo").value = "";
-    state.cart = [];
-    if (!IS_PAGES) {
-      await loadCatalog();
-    } else {
-      state.quantity = 1;
-      refreshPicker();
-    }
+    await resetPage();
   } catch (err) {
     el.formError.textContent = err.message || "주문 중 오류가 발생했습니다.";
     el.formError.hidden = false;
