@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-label="Nike Black">
+  <rect width="640" height="640" rx="48" fill="#14181c"/>
+  <rect x="170" y="120" width="300" height="360" rx="28" fill="#22282e"/>
+  <path d="M210 330c80-58 165-85 260-72-60 28-125 48-190 60-30 5-50 9-70 12z" fill="#f5f7f6"/>
+  <circle cx="320" cy="470" r="10" fill="#3a424a"/>
+  <text x="48" y="88" fill="#9fd0c6" font-family="Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="3">NIKE · BLACK</text>
+</svg>

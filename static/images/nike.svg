@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-label="Nike">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1f2933"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="640" rx="48" fill="url(#g)"/>
+  <path d="M120 360c120-90 250-130 400-110-90 40-190 70-290 88-45 8-78 14-110 22z" fill="#fff" opacity="0.95"/>
+  <text x="48" y="88" fill="#fff" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="4">NIKE</text>
+</svg>

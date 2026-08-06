@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Park Order · 의류 주문 요청서</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="bg"></div>
+  <main class="shell">
+    <header class="top">
+      <div>
+        <p class="brand">Park Order</p>
+        <h1>의류 주문 요청서 작성</h1>
+        <p class="sub">품목 · 색상 · 사이즈를 고른 뒤 배송 정보를 입력해 주세요.</p>
+      </div>
+      <div class="badge">배송비 3,500원</div>
+    </header>
+
+    <form id="orderForm" novalidate>
+      <section class="card" aria-labelledby="productHeading">
+        <div class="section-head">
+          <h2 id="productHeading">01 품목 선택</h2>
+          <p class="section-sub">원하는 브랜드를 선택하세요.</p>
+        </div>
+        <div class="product-grid" id="productGrid"></div>
+      </section>
+
+      <section class="card" aria-labelledby="optionHeading">
+        <div class="section-head">
+          <h2 id="optionHeading">02 옵션 · 수량</h2>
+          <p class="section-sub">색상과 사이즈, 주문 수량을 선택합니다.</p>
+        </div>
+
+        <div class="option-block">
+          <p class="label">색상</p>
+          <div class="chip-row" id="colorRow"></div>
+        </div>
+
+        <div class="option-block">
+          <p class="label">사이즈</p>
+          <div class="chip-row" id="sizeRow"></div>
+          <p class="stock-line" id="stockLine">남은 수량: -</p>
+        </div>
+
+        <div class="option-block qty-block">
+          <p class="label">수량</p>
+          <div class="qty">
+            <button type="button" id="qtyMinus" aria-label="수량 감소">−</button>
+            <input type="number" id="quantity" name="quantity" min="1" value="1" readonly />
+            <button type="button" id="qtyPlus" aria-label="수량 증가">+</button>
+          </div>
+        </div>
+
+        <div class="preview" id="previewBox">
+          <img id="previewImage" alt="선택 상품 이미지" />
+          <div>
+            <p class="preview-brand" id="previewBrand">-</p>
+            <p class="preview-name" id="previewName">품목을 선택해 주세요</p>
+            <p class="preview-meta" id="previewMeta"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="customerHeading">
+        <div class="section-head">
+          <h2 id="customerHeading">03 배송 정보</h2>
+          <p class="section-sub">이름, 연락처, 주소, 요청 메모를 남겨 주세요.</p>
+        </div>
+
+        <div class="fields">
+          <label class="field">
+            <span>이름</span>
+            <input id="name" name="name" type="text" autocomplete="name" placeholder="홍길동" required />
+          </label>
+          <label class="field">
+            <span>연락처</span>
+            <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="010-1234-5678" required />
+          </label>
+          <label class="field full">
+            <span>주소</span>
+            <input id="address" name="address" type="text" autocomplete="street-address" placeholder="시/군/구 도로명주소와 상세주소" required />
+          </label>
+          <label class="field full">
+            <span>메모 <em>(선택)</em></span>
+            <textarea id="memo" name="memo" rows="3" placeholder="배송 요청사항이 있으면 적어 주세요."></textarea>
+          </label>
+        </div>
+      </section>
+
+      <section class="card summary-card" aria-labelledby="summaryHeading">
+        <div class="section-head">
+          <h2 id="summaryHeading">04 결제 요약</h2>
+          <p class="section-sub">상품 금액과 배송비가 합산됩니다.</p>
+        </div>
+        <dl class="summary">
+          <div class="row">
+            <dt>상품 금액</dt>
+            <dd id="itemTotal">0원</dd>
+          </div>
+          <div class="row">
+            <dt>배송비</dt>
+            <dd id="shippingFee">3,500원</dd>
+          </div>
+          <div class="row total">
+            <dt>합계</dt>
+            <dd id="grandTotal">3,500원</dd>
+          </div>
+        </dl>
+        <button type="submit" class="submit" id="submitBtn">주문완료</button>
+        <p class="form-error" id="formError" hidden></p>
+      </section>
+
+      <section class="card notices" aria-labelledby="noticeHeading">
+        <div class="section-head">
+          <h2 id="noticeHeading">안내사항</h2>
+          <p class="section-sub">배송 · 교환 · 반품 정책을 확인해 주세요.</p>
+        </div>
+        <details open>
+          <summary>배송안내</summary>
+          <p id="noticeShipping"></p>
+        </details>
+        <details>
+          <summary>사이즈 교환 · 왕복배송비</summary>
+          <p id="noticeExchange"></p>
+        </details>
+        <details>
+          <summary>의류 반품불가 안내</summary>
+          <p id="noticeReturn"></p>
+        </details>
+      </section>
+    </form>
+
+    <p class="foot muted">Park Order · 주문 내역은 서버의 <code>data/orders.yaml</code>에 저장됩니다.</p>
+  </main>
+
+  <div class="toast" id="toast" hidden role="status" aria-live="polite">
+    <div class="toast-card">
+      <p class="toast-title">배송요청이 완료 되었습니다.</p>
+      <p class="toast-body" id="toastBody"></p>
+      <button type="button" id="toastClose">확인</button>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
