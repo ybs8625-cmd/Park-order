@@ -10,7 +10,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
@@ -40,6 +40,14 @@ app = FastAPI(title="Park Order")
 app.include_router(admin_router)
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 app.mount("/admin", StaticFiles(directory=ROOT / "docs" / "admin", html=True), name="admin")
+
+
+@app.get("/config.js")
+def config_js() -> Response:
+    path = ROOT / "docs" / "config.js"
+    if path.exists():
+        return FileResponse(path, media_type="application/javascript")
+    return Response("window.PARK_ORDER_CONFIG = {};\n", media_type="application/javascript")
 
 
 def push_order_to_github(order: dict[str, Any]) -> None:

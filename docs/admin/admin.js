@@ -435,24 +435,7 @@
   }
 
   async function ensureSession() {
-    // 로그인 화면을 기본으로 두고, 유효 세션만 통과
-    if (!state.token || localStorage.getItem(SESSION_KEY) !== "1") {
-      clearSession();
-      showLogin();
-      return false;
-    }
-    if (state.mode === "local") {
-      try {
-        await api("/api/admin/me");
-        showAdmin();
-        return true;
-      } catch (_) {
-        clearSession();
-        showLogin();
-        return false;
-      }
-    }
-    // Pages: 저장된 세션이 있어도 로그인 폼을 먼저 보여줌(자동 입장 방지)
+    // 새로고침 시 자동 입장 방지 — 항상 로그인 필요
     clearSession();
     showLogin();
     return false;
