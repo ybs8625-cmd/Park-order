@@ -39,9 +39,16 @@
     navBtns: [...document.querySelectorAll(".nav-btn")],
     panels: {
       orders: document.getElementById("ordersPanel"),
+      stats: document.getElementById("statsPanel"),
       products: document.getElementById("productsPanel"),
       password: document.getElementById("passwordPanel"),
     },
+    statsPeriodTabs: document.getElementById("statsPeriodTabs"),
+    statsRangeLabel: document.getElementById("statsRangeLabel"),
+    kpiOrders: document.getElementById("kpiOrders"),
+    kpiQty: document.getElementById("kpiQty"),
+    kpiRevenue: document.getElementById("kpiRevenue"),
+    kpiAvg: document.getElementById("kpiAvg"),
     dateFrom: document.getElementById("dateFrom"),
     dateTo: document.getElementById("dateTo"),
     searchOrdersBtn: document.getElementById("searchOrdersBtn"),
@@ -86,6 +93,8 @@
     extraColors: [],
     editingImages: [],
     imagePreviewMap: {},
+    statsPeriod: "weekly",
+    chartInstances: {},
   };
 
   function money(n) {
@@ -987,6 +996,236 @@
     }
   }
 
+  const STATS_COLORS = [
+    "#0f766e", "#ea580c", "#0369a1", "#ca8a04", "#be123c",
+    "#4d7c0f", "#0e7490", "#c2410c", "#1d4ed8", "#a16207",
+    "#115e59", "#9a3412", "#1e40af", "#3f6212", "#9f1239",
+  ];
+  const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+  const REGION_RULES = [
+    [/서울/, "서울"],
+    [/부산/, "부산"],
+    [/대구/, "대구"],
+    [/인천/, "인천"],
+    [/광주/, "광주"],
+    [/대전/, "대전"],
+    [/울산/, "울산"],
+    [/세종/, "세종"],
+    [/경기/, "경기"],
+    [/강원/, "강원"],
+    [/충청북도|충북/, "충북"],
+    [/충청남도|충남/, "충남"],
+    [/전북특별|전라북도|전북/, "전북"],
+    [/전라남도|전남/, "전남"],
+    [/경상북도|경북/, "경북"],
+    [/경상남도|경남/, "경남"],
+    [/제주/, "제주"],
+  ];
+
+  function ymd(date) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  function periodRange(period) {
+    const to = new Date();
+    const from = new Date();
+    let label = "최근 7일";
+    if (period === "monthly") {
+      from.setDate(to.getDate() - 29);
+      label = "최근 30일";
+    } else if (period === "yearly") {
+      from.setFullYear(to.getFullYear() - 1);
+      label = "최근 1년";
+    } else {
+      from.setDate(to.getDate() - 6);
+      label = "최근 7일";
+    }
+    return { from: ymd(from), to: ymd(to), label };
+  }
+
+  function num(value) {
+    return Number(String(value ?? "").replace(/[^0-9.-]/g, "")) || 0;
+  }
+
+  function parseBrand(item) {
+    const text = String(item || "").trim();
+    if (!text) return "기타";
+    if (text.includes("·")) return text.split("·")[0].trim() || "기타";
+    if (/nike/i.test(text)) return "NIKE";
+    if (/adidas/i.test(text)) return "ADIDAS";
+    return text.split(/\s+/)[0] || "기타";
+  }
+
+  function parseSize(size) {
+    const text = String(size || "").trim();
+    if (!text) return "기타";
+    const m = text.match(/^([A-Za-z0-9]+)/);
+    return (m ? m[1] : text).toUpperCase();
+  }
+
+  function parseRegion(address) {
+    const text = String(address || "");
+    for (const [re, name] of REGION_RULES) {
+      if (re.test(text)) return name;
+    }
+    return text.trim() ? "기타" : "미상";
+  }
+
+  function parseWeekday(orderTime) {
+    const day = String(orderTime || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+    const d = new Date(`${day}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return null;
+    return WEEKDAYS[d.getDay()];
+  }
+
+  function aggregateCount(rows, keyFn) {
+    const map = new Map();
+    rows.forEach((row) => {
+      const key = keyFn(row);
+      if (!key) return;
+      const qty = Math.max(num(row["수량"]), 1);
+      map.set(key, (map.get(key) || 0) + qty);
+    });
+    return [...map.entries()]
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value);
+  }
+
+  function destroyChart(id) {
+    if (state.chartInstances[id]) {
+      state.chartInstances[id].destroy();
+      delete state.chartInstances[id];
+    }
+  }
+
+  function renderDonut(canvasId, emptyId, items, dual = false) {
+    const canvas = document.getElementById(canvasId);
+    const empty = document.getElementById(emptyId);
+    destroyChart(canvasId);
+    if (!canvas) return;
+    if (!items.length) {
+      empty.hidden = false;
+      return;
+    }
+    empty.hidden = true;
+    const labels = items.map((x) => x.label);
+    const values = items.map((x) => x.value);
+    const colors = labels.map((_, i) => STATS_COLORS[i % STATS_COLORS.length]);
+    state.chartInstances[canvasId] = new Chart(canvas, {
+      type: dual ? "bar" : "doughnut",
+      data: {
+        labels,
+        datasets: [
+          {
+            data: values,
+            backgroundColor: colors,
+            borderColor: "#ffffff",
+            borderWidth: dual ? 0 : 3,
+            hoverOffset: dual ? 0 : 8,
+            borderRadius: dual ? 8 : 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: dual ? undefined : "62%",
+        plugins: {
+          legend: {
+            position: dual ? "top" : "right",
+            labels: {
+              boxWidth: 12,
+              usePointStyle: true,
+              font: { family: "IBM Plex Sans KR", size: 12 },
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
+                const val = ctx.raw || 0;
+                const pct = Math.round((val / total) * 100);
+                return ` ${ctx.label}: ${val.toLocaleString("ko-KR")}개 (${pct}%)`;
+              },
+            },
+          },
+        },
+        scales: dual
+          ? {
+              x: {
+                grid: { display: false },
+                ticks: { font: { family: "IBM Plex Sans KR" } },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { precision: 0, font: { family: "IBM Plex Sans KR" } },
+                grid: { color: "rgba(15,28,36,0.06)" },
+              },
+            }
+          : undefined,
+      },
+    });
+  }
+
+  async function fetchStatsRows(from, to) {
+    if (state.mode === "local") {
+      const data = await api(
+        `/api/admin/orders?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}`
+      );
+      return data.rows || [];
+    }
+    let text = "";
+    try {
+      const res = await fetch(rawUrl("data/orders.csv"), { cache: "no-store" });
+      text = res.ok ? await res.text() : "";
+    } catch (_) {
+      text = "";
+    }
+    return parseCsv(text).filter((r) => {
+      const day = String(r["주문시간"] || "").slice(0, 10);
+      if (from && day < from) return false;
+      if (to && day > to) return false;
+      return true;
+    });
+  }
+
+  async function loadStats() {
+    const range = periodRange(state.statsPeriod);
+    if (els.statsRangeLabel) els.statsRangeLabel.textContent = `${range.label} · ${range.from} ~ ${range.to}`;
+    const rows = await fetchStatsRows(range.from, range.to);
+
+    const orderMap = new Map();
+    let qty = 0;
+    rows.forEach((r) => {
+      qty += Math.max(num(r["수량"]), 1);
+      const id = r["주문번호"] || `${r["주문시간"]}-${r["이름"]}`;
+      if (!orderMap.has(id)) orderMap.set(id, num(r["결제합계"]));
+    });
+    const orderCount = orderMap.size;
+    const revenue = [...orderMap.values()].reduce((a, b) => a + b, 0);
+    const avg = orderCount ? Math.round(revenue / orderCount) : 0;
+
+    if (els.kpiOrders) els.kpiOrders.textContent = orderCount.toLocaleString("ko-KR");
+    if (els.kpiQty) els.kpiQty.textContent = qty.toLocaleString("ko-KR");
+    if (els.kpiRevenue) els.kpiRevenue.textContent = money(revenue);
+    if (els.kpiAvg) els.kpiAvg.textContent = money(avg);
+
+    renderDonut("chartBrand", "emptyBrand", aggregateCount(rows, (r) => parseBrand(r["품목"])));
+    renderDonut("chartSize", "emptySize", aggregateCount(rows, (r) => parseSize(r["사이즈"])));
+    renderDonut("chartColor", "emptyColor", aggregateCount(rows, (r) => String(r["색상"] || "기타").trim() || "기타"));
+    renderDonut("chartRegion", "emptyRegion", aggregateCount(rows, (r) => parseRegion(r["주소"])));
+
+    const weekdayMap = Object.fromEntries(WEEKDAYS.map((d) => [d, 0]));
+    rows.forEach((r) => {
+      const day = parseWeekday(r["주문시간"]);
+      if (!day) return;
+      weekdayMap[day] += Math.max(num(r["수량"]), 1);
+    });
+    const weekdayAll = WEEKDAYS.map((label) => ({ label: `${label}요일`, value: weekdayMap[label] }));
+    renderDonut("chartWeekday", "emptyWeekday", rows.length ? weekdayAll : [], true);
+  }
+
   function bindEvents() {
     els.loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1015,11 +1254,26 @@
         setPanel(panel);
         try {
           if (panel === "orders") await loadOrders();
+          if (panel === "stats") await loadStats();
           if (panel === "products") await loadProducts();
         } catch (err) {
           alert(err.message || "불러오기 실패");
         }
       });
+    });
+
+    els.statsPeriodTabs?.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".period-tab");
+      if (!btn) return;
+      state.statsPeriod = btn.dataset.period || "weekly";
+      [...els.statsPeriodTabs.querySelectorAll(".period-tab")].forEach((el) => {
+        el.classList.toggle("active", el === btn);
+      });
+      try {
+        await loadStats();
+      } catch (err) {
+        alert(err.message || "통계 불러오기 실패");
+      }
     });
 
     els.searchOrdersBtn.addEventListener("click", () => loadOrders().catch((e) => alert(e.message)));

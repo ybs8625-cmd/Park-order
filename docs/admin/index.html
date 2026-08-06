@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./admin.css?v=6" />
+  <link rel="stylesheet" href="./admin.css?v=7" />
 </head>
 <body>
   <div class="bg"></div>
@@ -37,6 +37,7 @@
       <h2>관리자</h2>
       <nav>
         <button type="button" class="nav-btn active" data-panel="orders">주문내역</button>
+        <button type="button" class="nav-btn" data-panel="stats">주문통계</button>
         <button type="button" class="nav-btn" data-panel="products">상품관리</button>
         <button type="button" class="nav-btn" data-panel="password">비밀번호 변경</button>
       </nav>
@@ -101,6 +102,67 @@
             </thead>
             <tbody id="productsBody"></tbody>
           </table>
+        </div>
+      </section>
+
+      <section id="statsPanel" class="panel" hidden>
+        <div class="panel-head stats-head">
+          <div>
+            <h1>주문통계</h1>
+            <p class="stats-range" id="statsRangeLabel">최근 7일</p>
+          </div>
+          <div class="period-tabs" id="statsPeriodTabs">
+            <button type="button" class="period-tab active" data-period="weekly">주간</button>
+            <button type="button" class="period-tab" data-period="monthly">월간</button>
+            <button type="button" class="period-tab" data-period="yearly">연간</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="statsKpis">
+          <article class="kpi-card">
+            <span>주문 건수</span>
+            <strong id="kpiOrders">0</strong>
+          </article>
+          <article class="kpi-card">
+            <span>판매 수량</span>
+            <strong id="kpiQty">0</strong>
+          </article>
+          <article class="kpi-card">
+            <span>매출 합계</span>
+            <strong id="kpiRevenue">0원</strong>
+          </article>
+          <article class="kpi-card">
+            <span>평균 결제액</span>
+            <strong id="kpiAvg">0원</strong>
+          </article>
+        </div>
+
+        <div class="stats-grid">
+          <article class="chart-card">
+            <h3>브랜드 통계</h3>
+            <div class="chart-wrap"><canvas id="chartBrand"></canvas></div>
+            <p class="chart-empty" id="emptyBrand" hidden>데이터가 없습니다</p>
+          </article>
+          <article class="chart-card">
+            <h3>사이즈 통계</h3>
+            <div class="chart-wrap"><canvas id="chartSize"></canvas></div>
+            <p class="chart-empty" id="emptySize" hidden>데이터가 없습니다</p>
+          </article>
+          <article class="chart-card">
+            <h3>색상 통계</h3>
+            <div class="chart-wrap"><canvas id="chartColor"></canvas></div>
+            <p class="chart-empty" id="emptyColor" hidden>데이터가 없습니다</p>
+          </article>
+          <article class="chart-card">
+            <h3>주문 지역(시도) 통계</h3>
+            <div class="chart-wrap"><canvas id="chartRegion"></canvas></div>
+            <p class="chart-empty" id="emptyRegion" hidden>데이터가 없습니다</p>
+          </article>
+          <article class="chart-card chart-card-wide">
+            <h3>요일별 주문 통계</h3>
+            <div class="chart-wrap chart-wrap-wide"><canvas id="chartWeekday"></canvas></div>
+            <p class="chart-empty" id="emptyWeekday" hidden>데이터가 없습니다</p>
+          </article>
         </div>
       </section>
 
@@ -192,7 +254,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="../config.js?v=10"></script>
-  <script src="./admin.js?v=9"></script>
+  <script src="./admin.js?v=10"></script>
 </body>
 </html>
