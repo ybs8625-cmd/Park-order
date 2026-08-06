@@ -404,13 +404,33 @@ h1 {
 .foot {
   margin: 4px 2px 0;
   font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .muted { color: var(--muted); }
 
-.foot code {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
+.foot .credit {
+  letter-spacing: 0.04em;
+}
+
+.foot .credit em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.foot .admin-link {
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.foot .admin-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .cart-anchor {
@@ -664,24 +684,6 @@ h1 {
   .field-qty { max-width: 140px; }
 }
 
-.site-footer {
-  width: min(1080px, calc(100% - 32px));
-  margin: 0 auto 28px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.site-footer a {
-  color: var(--muted);
-  font-size: 12px;
-  text-decoration: none;
-}
-
-.site-footer a:hover {
-  color: var(--accent);
-  text-decoration: underline;
-}
-
 @media (max-width: 640px) {
   .layout { width: calc(100% - 20px); padding-top: 20px; }
   .top { flex-direction: column; }
@@ -691,5 +693,4 @@ h1 {
   .field-qty { grid-column: auto; max-width: none; }
   .pick-bar { flex-direction: column; align-items: stretch; }
   .add-btn { width: 100%; }
-  .site-footer { width: calc(100% - 20px); }
 }

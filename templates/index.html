@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/style.css?v=9" />
+  <link rel="stylesheet" href="/static/style.css?v=10" />
 </head>
 <body>
   <div class="bg"></div>
@@ -121,7 +121,10 @@
         <p class="form-error" id="formError" hidden></p>
       </form>
 
-      <p class="foot muted">주문 내역은 <code>data/orders.csv</code> 에 계속 추가 저장됩니다.</p>
+      <p class="foot muted">
+        <span class="credit">Created by <em>bsYu</em></span>
+        <a class="admin-link" href="/admin/">(관리자 페이지 접속)</a>
+      </p>
     </main>
 
     <div class="cart-anchor" id="cartAnchor" aria-hidden="true"></div>
@@ -164,11 +167,7 @@
     </div>
   </div>
 
-  <footer class="site-footer">
-    <a href="/admin/">(관리자 페이지 접속)</a>
-  </footer>
-
   <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-  <script src="/static/app.js?v=9"></script>
+  <script src="/static/app.js?v=10"></script>
 </body>
 </html>
