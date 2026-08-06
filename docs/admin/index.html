@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./admin.css?v=7" />
+  <link rel="stylesheet" href="./admin.css?v=8" />
 </head>
 <body>
   <div class="bg"></div>
@@ -140,27 +140,54 @@
         <div class="stats-grid">
           <article class="chart-card">
             <h3>브랜드 통계</h3>
-            <div class="chart-wrap"><canvas id="chartBrand"></canvas></div>
+            <div class="chart-body">
+              <div class="chart-ring-wrap">
+                <canvas id="chartBrand"></canvas>
+                <div class="chart-center" id="centerBrand"><strong>0</strong><span>총 수량</span></div>
+              </div>
+              <ul class="chart-legend" id="legendBrand"></ul>
+            </div>
             <p class="chart-empty" id="emptyBrand" hidden>데이터가 없습니다</p>
           </article>
           <article class="chart-card">
             <h3>사이즈 통계</h3>
-            <div class="chart-wrap"><canvas id="chartSize"></canvas></div>
+            <div class="chart-body">
+              <div class="chart-ring-wrap">
+                <canvas id="chartSize"></canvas>
+                <div class="chart-center" id="centerSize"><strong>0</strong><span>총 수량</span></div>
+              </div>
+              <ul class="chart-legend" id="legendSize"></ul>
+            </div>
             <p class="chart-empty" id="emptySize" hidden>데이터가 없습니다</p>
           </article>
           <article class="chart-card">
             <h3>색상 통계</h3>
-            <div class="chart-wrap"><canvas id="chartColor"></canvas></div>
+            <div class="chart-body">
+              <div class="chart-ring-wrap">
+                <canvas id="chartColor"></canvas>
+                <div class="chart-center" id="centerColor"><strong>0</strong><span>총 수량</span></div>
+              </div>
+              <ul class="chart-legend" id="legendColor"></ul>
+            </div>
             <p class="chart-empty" id="emptyColor" hidden>데이터가 없습니다</p>
           </article>
           <article class="chart-card">
             <h3>주문 지역(시도) 통계</h3>
-            <div class="chart-wrap"><canvas id="chartRegion"></canvas></div>
+            <div class="chart-body">
+              <div class="chart-ring-wrap">
+                <canvas id="chartRegion"></canvas>
+                <div class="chart-center" id="centerRegion"><strong>0</strong><span>총 수량</span></div>
+              </div>
+              <ul class="chart-legend" id="legendRegion"></ul>
+            </div>
             <p class="chart-empty" id="emptyRegion" hidden>데이터가 없습니다</p>
           </article>
           <article class="chart-card chart-card-wide">
             <h3>요일별 주문 통계</h3>
-            <div class="chart-wrap chart-wrap-wide"><canvas id="chartWeekday"></canvas></div>
+            <div class="chart-body chart-body-wide">
+              <div class="chart-wrap chart-wrap-wide"><canvas id="chartWeekday"></canvas></div>
+              <ul class="chart-legend chart-legend-inline" id="legendWeekday"></ul>
+            </div>
             <p class="chart-empty" id="emptyWeekday" hidden>데이터가 없습니다</p>
           </article>
         </div>
@@ -256,6 +283,6 @@
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="../config.js?v=10"></script>
-  <script src="./admin.js?v=10"></script>
+  <script src="./admin.js?v=11"></script>
 </body>
 </html>

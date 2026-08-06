@@ -997,9 +997,9 @@
   }
 
   const STATS_COLORS = [
-    "#0f766e", "#ea580c", "#0369a1", "#ca8a04", "#be123c",
-    "#4d7c0f", "#0e7490", "#c2410c", "#1d4ed8", "#a16207",
-    "#115e59", "#9a3412", "#1e40af", "#3f6212", "#9f1239",
+    "#0f766e", "#ea580c", "#0284c7", "#ca8a04", "#e11d48",
+    "#65a30d", "#0e7490", "#c2410c", "#2563eb", "#a16207",
+    "#115e59", "#9a3412", "#1d4ed8", "#4d7c0f", "#be123c",
   ];
   const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
   const REGION_RULES = [
@@ -1099,21 +1099,89 @@
     }
   }
 
-  function renderDonut(canvasId, emptyId, items, dual = false) {
+  function fillLegend(legendId, items, colors, total) {
+    const legend = document.getElementById(legendId);
+    if (!legend) return;
+    legend.innerHTML = items
+      .map((item, i) => {
+        const pct = total ? Math.round((item.value / total) * 1000) / 10 : 0;
+        return `
+        <li>
+          <span class="swatch" style="background:${colors[i % colors.length]}"></span>
+          <span class="name">${item.label}</span>
+          <span class="count">${item.value.toLocaleString("ko-KR")}개</span>
+          <span class="pct">${pct}%</span>
+        </li>`;
+      })
+      .join("");
+  }
+
+  function setCenter(centerId, total) {
+    const elCenter = document.getElementById(centerId);
+    if (!elCenter) return;
+    elCenter.innerHTML = `<strong>${total.toLocaleString("ko-KR")}</strong><span>총 수량</span>`;
+  }
+
+  function renderDonut(canvasId, emptyId, legendId, centerId, items, asBar = false) {
     const canvas = document.getElementById(canvasId);
     const empty = document.getElementById(emptyId);
     destroyChart(canvasId);
     if (!canvas) return;
-    if (!items.length) {
-      empty.hidden = false;
+
+    const total = items.reduce((sum, x) => sum + x.value, 0);
+    const colors = items.map((_, i) => STATS_COLORS[i % STATS_COLORS.length]);
+
+    if (!items.length || total <= 0) {
+      if (empty) empty.hidden = false;
+      fillLegend(legendId, [], colors, 0);
+      setCenter(centerId, 0);
       return;
     }
-    empty.hidden = true;
+    if (empty) empty.hidden = true;
+    fillLegend(legendId, items, colors, total);
+    setCenter(centerId, total);
+
     const labels = items.map((x) => x.label);
     const values = items.map((x) => x.value);
-    const colors = labels.map((_, i) => STATS_COLORS[i % STATS_COLORS.length]);
+
+    const valueLabelPlugin = {
+      id: `valueLabel-${canvasId}`,
+      afterDatasetsDraw(chart) {
+        if (asBar) {
+          const { ctx } = chart;
+          chart.getDatasetMeta(0).data.forEach((bar, i) => {
+            const val = values[i] || 0;
+            const pct = total ? Math.round((val / total) * 100) : 0;
+            ctx.save();
+            ctx.fillStyle = "#0f1c24";
+            ctx.font = "600 11px IBM Plex Sans KR";
+            ctx.textAlign = "center";
+            ctx.fillText(`${val}개 (${pct}%)`, bar.x, bar.y - 8);
+            ctx.restore();
+          });
+          return;
+        }
+        const { ctx } = chart;
+        chart.getDatasetMeta(0).data.forEach((arc, i) => {
+          const val = values[i] || 0;
+          const pct = total ? (val / total) * 100 : 0;
+          if (pct < 8) return;
+          const pos = arc.tooltipPosition();
+          ctx.save();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "700 11px IBM Plex Sans KR";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = "rgba(0,0,0,0.25)";
+          ctx.shadowBlur = 4;
+          ctx.fillText(`${Math.round(pct)}%`, pos.x, pos.y);
+          ctx.restore();
+        });
+      },
+    };
+
     state.chartInstances[canvasId] = new Chart(canvas, {
-      type: dual ? "bar" : "doughnut",
+      type: asBar ? "bar" : "doughnut",
       data: {
         labels,
         datasets: [
@@ -1121,41 +1189,40 @@
             data: values,
             backgroundColor: colors,
             borderColor: "#ffffff",
-            borderWidth: dual ? 0 : 3,
-            hoverOffset: dual ? 0 : 8,
-            borderRadius: dual ? 8 : 0,
+            borderWidth: asBar ? 0 : 5,
+            hoverOffset: asBar ? 0 : 10,
+            borderRadius: asBar ? 10 : 10,
+            spacing: asBar ? 0 : 3,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: dual ? undefined : "62%",
+        cutout: asBar ? undefined : "72%",
+        layout: { padding: asBar ? { top: 18 } : 4 },
         plugins: {
-          legend: {
-            position: dual ? "top" : "right",
-            labels: {
-              boxWidth: 12,
-              usePointStyle: true,
-              font: { family: "IBM Plex Sans KR", size: 12 },
-            },
-          },
+          legend: { display: false },
           tooltip: {
+            backgroundColor: "rgba(15,28,36,0.92)",
+            padding: 10,
+            cornerRadius: 10,
+            titleFont: { family: "IBM Plex Sans KR", size: 12, weight: "700" },
+            bodyFont: { family: "IBM Plex Sans KR", size: 12 },
             callbacks: {
               label(ctx) {
-                const total = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
                 const val = ctx.raw || 0;
-                const pct = Math.round((val / total) * 100);
-                return ` ${ctx.label}: ${val.toLocaleString("ko-KR")}개 (${pct}%)`;
+                const pct = total ? Math.round((val / total) * 1000) / 10 : 0;
+                return ` ${val.toLocaleString("ko-KR")}개 · ${pct}%`;
               },
             },
           },
         },
-        scales: dual
+        scales: asBar
           ? {
               x: {
                 grid: { display: false },
-                ticks: { font: { family: "IBM Plex Sans KR" } },
+                ticks: { font: { family: "IBM Plex Sans KR", weight: "600" } },
               },
               y: {
                 beginAtZero: true,
@@ -1165,6 +1232,7 @@
             }
           : undefined,
       },
+      plugins: [valueLabelPlugin],
     });
   }
 
@@ -1211,10 +1279,10 @@
     if (els.kpiRevenue) els.kpiRevenue.textContent = money(revenue);
     if (els.kpiAvg) els.kpiAvg.textContent = money(avg);
 
-    renderDonut("chartBrand", "emptyBrand", aggregateCount(rows, (r) => parseBrand(r["품목"])));
-    renderDonut("chartSize", "emptySize", aggregateCount(rows, (r) => parseSize(r["사이즈"])));
-    renderDonut("chartColor", "emptyColor", aggregateCount(rows, (r) => String(r["색상"] || "기타").trim() || "기타"));
-    renderDonut("chartRegion", "emptyRegion", aggregateCount(rows, (r) => parseRegion(r["주소"])));
+    renderDonut("chartBrand", "emptyBrand", "legendBrand", "centerBrand", aggregateCount(rows, (r) => parseBrand(r["품목"])));
+    renderDonut("chartSize", "emptySize", "legendSize", "centerSize", aggregateCount(rows, (r) => parseSize(r["사이즈"])));
+    renderDonut("chartColor", "emptyColor", "legendColor", "centerColor", aggregateCount(rows, (r) => String(r["색상"] || "기타").trim() || "기타"));
+    renderDonut("chartRegion", "emptyRegion", "legendRegion", "centerRegion", aggregateCount(rows, (r) => parseRegion(r["주소"])));
 
     const weekdayMap = Object.fromEntries(WEEKDAYS.map((d) => [d, 0]));
     rows.forEach((r) => {
@@ -1223,7 +1291,7 @@
       weekdayMap[day] += Math.max(num(r["수량"]), 1);
     });
     const weekdayAll = WEEKDAYS.map((label) => ({ label: `${label}요일`, value: weekdayMap[label] }));
-    renderDonut("chartWeekday", "emptyWeekday", rows.length ? weekdayAll : [], true);
+    renderDonut("chartWeekday", "emptyWeekday", "legendWeekday", null, rows.length ? weekdayAll : [], true);
   }
 
   function bindEvents() {
