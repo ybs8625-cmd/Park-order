@@ -20,7 +20,6 @@ const el = {
   addCartBtn: document.getElementById("addCartBtn"),
   cartItems: document.getElementById("cartItems"),
   cartCount: document.getElementById("cartCount"),
-  cartExpandBtn: document.getElementById("cartExpandBtn"),
   layout: document.getElementById("layout"),
   cartAnchor: document.getElementById("cartAnchor"),
   cartSide: document.getElementById("cartSide"),
@@ -416,15 +415,6 @@ function pinCart() {
     el.cartSide.style.bottom = "20px";
   }
 }
-
-el.cartExpandBtn?.addEventListener("click", () => {
-  // 확대는 장바구니 안 목록만 늘리고, 전체 레이아웃 폭은 건드리지 않음
-  const expanded = el.cartSide.classList.toggle("is-expanded");
-  el.layout.classList.remove("cart-expanded");
-  el.cartExpandBtn.setAttribute("aria-pressed", expanded ? "true" : "false");
-  el.cartExpandBtn.textContent = expanded ? "축소" : "확대";
-  requestAnimationFrame(pinCart);
-});
 
 document.getElementById("noticeDetails")?.addEventListener("toggle", () => {
   requestAnimationFrame(pinCart);
