@@ -380,51 +380,58 @@ el.cartItems.addEventListener("click", (event) => {
   refreshPicker();
 });
 
-function pinCartBottom() {
+function pinCart() {
   if (!el.cartSide || !el.cartAnchor) return;
+  el.layout?.classList.remove("cart-expanded");
+
   if (window.matchMedia("(max-width: 900px)").matches) {
     el.cartSide.style.left = "";
     el.cartSide.style.width = "";
+    el.cartSide.style.top = "";
     el.cartSide.style.bottom = "";
+    el.cartSide.style.height = "";
     el.cartSide.style.maxHeight = "";
     return;
   }
 
   const anchorRect = el.cartAnchor.getBoundingClientRect();
-  const notices = document.querySelector(".card.notices");
-  const noticesBottom = notices
-    ? notices.getBoundingClientRect().bottom
-    : window.innerHeight - 20;
-  const bottomGap = Math.max(12, Math.round(window.innerHeight - noticesBottom));
-  const maxHeight = Math.max(280, Math.min(Math.round(noticesBottom - 24), Math.round(window.innerHeight - 48)));
-  const expanded = el.cartSide.classList.contains("is-expanded");
-  const width = expanded
-    ? Math.min(420, Math.round(anchorRect.width + 100))
-    : Math.round(anchorRect.width);
-  const left = Math.round(anchorRect.right - width);
+  const shipping = document.getElementById("shippingCard");
+  const shipRect = shipping?.getBoundingClientRect();
+  const width = Math.round(anchorRect.width);
+  const left = Math.round(anchorRect.left);
 
-  el.cartSide.style.left = `${Math.max(16, left)}px`;
+  el.cartSide.style.left = `${left}px`;
   el.cartSide.style.width = `${width}px`;
-  el.cartSide.style.bottom = `${bottomGap}px`;
-  el.cartSide.style.top = "auto";
   el.cartSide.style.right = "auto";
-  el.cartSide.style.maxHeight = `${maxHeight}px`;
+  el.cartSide.style.bottom = "auto";
+
+  if (shipRect && shipRect.height > 0) {
+    el.cartSide.style.top = `${Math.round(shipRect.top)}px`;
+    el.cartSide.style.height = `${Math.round(shipRect.height)}px`;
+    el.cartSide.style.maxHeight = `${Math.round(shipRect.height)}px`;
+  } else {
+    el.cartSide.style.top = "";
+    el.cartSide.style.height = "";
+    el.cartSide.style.maxHeight = "70vh";
+    el.cartSide.style.bottom = "20px";
+  }
 }
 
-el.cartExpandBtn.addEventListener("click", () => {
+el.cartExpandBtn?.addEventListener("click", () => {
+  // 확대는 장바구니 안 목록만 늘리고, 전체 레이아웃 폭은 건드리지 않음
   const expanded = el.cartSide.classList.toggle("is-expanded");
   el.layout.classList.remove("cart-expanded");
   el.cartExpandBtn.setAttribute("aria-pressed", expanded ? "true" : "false");
   el.cartExpandBtn.textContent = expanded ? "축소" : "확대";
-  requestAnimationFrame(pinCartBottom);
+  requestAnimationFrame(pinCart);
 });
 
 document.getElementById("noticeDetails")?.addEventListener("toggle", () => {
-  requestAnimationFrame(pinCartBottom);
+  requestAnimationFrame(pinCart);
 });
 
-window.addEventListener("resize", pinCartBottom);
-window.addEventListener("scroll", pinCartBottom, { passive: true });
+window.addEventListener("resize", pinCart);
+window.addEventListener("scroll", pinCart, { passive: true });
 
 el.toastClose.addEventListener("click", () => {
   el.toast.hidden = true;
@@ -578,10 +585,17 @@ el.form.addEventListener("submit", async (event) => {
 });
 
 const noticeDetails = document.getElementById("noticeDetails");
-if (noticeDetails) noticeDetails.open = true;
+if (noticeDetails) {
+  noticeDetails.setAttribute("open", "");
+  noticeDetails.open = true;
+}
+el.layout?.classList.remove("cart-expanded");
 
 loadCatalog()
-  .then(() => requestAnimationFrame(pinCartBottom))
+  .then(() => {
+    if (noticeDetails) noticeDetails.open = true;
+    requestAnimationFrame(pinCart);
+  })
   .catch((err) => {
     el.formError.textContent = err.message;
     el.formError.hidden = false;

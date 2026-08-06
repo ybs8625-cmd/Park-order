@@ -421,21 +421,20 @@ h1 {
 
 .cart-side {
   position: fixed;
-  bottom: 20px;
   z-index: 30;
   width: var(--cart-w);
-  max-height: calc(100dvh - 40px);
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--line);
   border-radius: 18px;
   box-shadow: var(--shadow);
   backdrop-filter: blur(10px);
-  overflow: auto;
-  transition: box-shadow 0.2s ease, width 0.2s ease, left 0.2s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .cart-side.is-expanded {
-  box-shadow: 0 20px 60px rgba(15, 28, 36, 0.18);
+  box-shadow: 0 16px 40px rgba(15, 28, 36, 0.16);
 }
 
 .cart-head {
@@ -487,17 +486,24 @@ h1 {
   padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .cart-items {
   flex: 1;
-  max-height: 220px;
+  min-height: 0;
   overflow: auto;
   margin-bottom: 10px;
 }
 
+.cart-side:not(.is-expanded) .cart-items {
+  max-height: 140px;
+}
+
 .cart-side.is-expanded .cart-items {
-  max-height: 300px;
+  max-height: none;
 }
 
 .cart-empty {
