@@ -491,9 +491,8 @@
 
   function imgTag(path, extraClass = "") {
     const src = productImageSrc(path);
-    const fallback = toRawGithubUrl(path);
     const cls = extraClass ? ` class="${extraClass}"` : "";
-    return `<img${cls} src="${src}" data-fallback="${fallback}" alt="" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback;}" />`;
+    return `<img${cls} src="${src}" alt="" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'img-missing',textContent:'이미지 없음'}))" />`;
   }
 
   function renderOrders(rows) {

@@ -362,6 +362,30 @@ h1 {
   cursor: zoom-in;
 }
 
+.img-missing {
+  flex: 0 0 auto;
+  width: min(280px, 72vw);
+  height: min(280px, 72vw);
+  border-radius: 12px;
+  background: #eef3f1;
+  border: 1px dashed rgba(15, 28, 36, 0.18);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  scroll-snap-align: start;
+}
+
+.img-missing.tiny {
+  width: 48px;
+  height: 48px;
+  font-size: 9px;
+  text-align: center;
+  line-height: 1.2;
+  padding: 4px;
+}
+
 .photo-lightbox {
   position: fixed;
   inset: 0;

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-label="NIKE POLO">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1f2933"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="640" rx="48" fill="url(#g)"/>
+  <path d="M250 200h140l40 40v180H210V240z" fill="rgba(255,255,255,0.18)"/><path d="M290 200l30 35 30-35" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="10"/>
+  <circle cx="520" cy="120" r="48" fill="#0f766e" opacity="0.9"/>
+  <text x="48" y="88" fill="#ffffff" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="3">NIKE</text>
+  <text x="48" y="560" fill="#ffffff" font-family="Arial, sans-serif" font-size="42" font-weight="700">POLO</text>
+  <text x="48" y="598" fill="#ffffff" font-family="Arial, sans-serif" font-size="20" opacity="0.8">MAIN</text>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-label="ADIDAS TEE">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e8eef0"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="640" rx="48" fill="url(#g)"/>
+  <path d="M230 200h180l35 40v200H195V240z" fill="rgba(255,255,255,0.18)"/>
+  <circle cx="520" cy="120" r="48" fill="#94a3b8" opacity="0.9"/>
+  <text x="48" y="88" fill="#0f1c24" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="3">ADIDAS</text>
+  <text x="48" y="560" fill="#0f1c24" font-family="Arial, sans-serif" font-size="42" font-weight="700">TEE</text>
+  <text x="48" y="598" fill="#0f1c24" font-family="Arial, sans-serif" font-size="20" opacity="0.8">LIGHT</text>
+</svg>

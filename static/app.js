@@ -87,14 +87,25 @@ function currentColorImage() {
 
 function productGalleryImages(product) {
   if (!product) return [];
-  const list = [];
-  const push = (src) => {
-    if (src && !list.includes(src)) list.push(src);
-  };
-  if (Array.isArray(product.images)) product.images.forEach(push);
-  push(product.image);
-  (product.colors || []).forEach((c) => push(c.image));
-  return list;
+  if (Array.isArray(product.images) && product.images.length) {
+    return product.images.filter(Boolean);
+  }
+  return product.image ? [product.image] : [];
+}
+
+function markImageMissing(imgEl) {
+  if (!imgEl || imgEl.dataset.missingHandled === "1") return;
+  imgEl.dataset.missingHandled = "1";
+  const holder = document.createElement("div");
+  holder.className = "img-missing";
+  holder.textContent = "이미지 없음";
+  imgEl.replaceWith(holder);
+}
+
+function bindImageFallback(root = document) {
+  root.querySelectorAll("img[data-img-fallback]").forEach((img) => {
+    img.addEventListener("error", () => markImageMissing(img), { once: true });
+  });
 }
 
 function closeLightbox() {
@@ -105,6 +116,7 @@ function closeLightbox() {
 
 function openLightbox(src) {
   if (!el.photoLightbox || !el.photoLightboxImage || !src) return;
+  if (src.startsWith("missing:")) return;
   el.photoLightboxImage.src = src;
   el.photoLightbox.hidden = false;
 }
@@ -126,10 +138,11 @@ function renderGallery(product) {
   el.galleryTrack.innerHTML = images
     .map((src) => {
       const url = resolveImage(src);
-      return `<img src="${url}" alt="" loading="lazy" data-full="${url}" />`;
+      return `<img src="${url}" alt="" loading="lazy" data-full="${url}" data-img-fallback="1" />`;
     })
     .join("");
   el.productGallery.hidden = false;
+  bindImageFallback(el.galleryTrack);
 }
 
 function fillProductSelect() {
@@ -215,10 +228,31 @@ function updatePicker() {
 
   if (img) {
     el.previewImage.hidden = false;
+    el.previewImage.dataset.missingHandled = "";
+    el.previewImage.setAttribute("data-img-fallback", "1");
     el.previewImage.src = resolveImage(img);
     el.previewImage.alt = product ? `${product.brand} ${product.name}` : "";
+    el.previewImage.onerror = () => {
+      el.previewImage.hidden = true;
+      let miss = document.getElementById("previewMissing");
+      if (!miss) {
+        miss = document.createElement("div");
+        miss.id = "previewMissing";
+        miss.className = "img-missing tiny";
+        miss.textContent = "이미지 없음";
+        el.previewImage.parentElement?.appendChild(miss);
+      }
+      miss.hidden = false;
+    };
+    const miss = document.getElementById("previewMissing");
+    if (miss) miss.hidden = true;
   } else {
     el.previewImage.hidden = true;
+    const miss = document.getElementById("previewMissing");
+    if (miss) {
+      miss.hidden = false;
+      miss.textContent = "이미지 없음";
+    }
   }
 
   renderGallery(product);
@@ -254,7 +288,7 @@ function renderCart() {
     const row = document.createElement("div");
     row.className = "cart-row";
     row.innerHTML = `
-      <img src="${resolveImage(item.image)}" alt="" />
+      <img src="${resolveImage(item.image)}" alt="" data-img-fallback="1" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'img-missing tiny',textContent:'이미지 없음'}))" />
       <div>
         <p class="title">${item.brand} · ${item.name}</p>
         <p class="meta">${item.colorName} · ${item.sizeLabel} · ${item.quantity}개</p>
@@ -493,6 +527,7 @@ async function resetPage() {
 }
 
 el.galleryTrack?.addEventListener("click", (event) => {
+  if (event.target.closest(".img-missing")) return;
   const img = event.target.closest("img[data-full]");
   if (!img) return;
   openLightbox(img.dataset.full);

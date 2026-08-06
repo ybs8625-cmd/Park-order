@@ -7,22 +7,17 @@
       "brand": "NIKE",
       "price": 29000,
       "description": "데일리 핏 코튼 티",
-      "image": "./images/nike.svg",
+      "image": "./images/nike-tee.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/nike-black.svg"
+          "image": "./images/nike-tee-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/nike-white.svg"
-        },
-        {
-          "id": "오렌지",
-          "name": "오렌지",
-          "image": "./images/nike.svg"
+          "image": "./images/nike-tee-detail.svg"
         }
       ],
       "stock": {
@@ -39,13 +34,6 @@
           "L": 7,
           "XL": 4,
           "XXL": 1
-        },
-        "오렌지": {
-          "S": 0,
-          "M": 0,
-          "L": 0,
-          "XL": 0,
-          "XXL": 0
         }
       },
       "sizes": [
@@ -71,10 +59,9 @@
         }
       ],
       "images": [
-        "./images/nike.svg",
-        "./images/upload-1785998094634-9cd5.png",
-        "./images/upload-1785998098054-b47c.png",
-        "./images/upload-1785998102103-4b54.png"
+        "./images/nike-tee.svg",
+        "./images/nike-tee-alt.svg",
+        "./images/nike-tee-detail.svg"
       ]
     },
     {
@@ -83,17 +70,17 @@
       "brand": "ADIDAS",
       "price": 27000,
       "description": "코튼 로고 티",
-      "image": "./images/adidas.svg",
+      "image": "./images/adidas-tee.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/adidas-black.svg"
+          "image": "./images/adidas-tee-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/adidas-white.svg"
+          "image": "./images/adidas-tee-detail.svg"
         }
       ],
       "stock": {
@@ -133,6 +120,11 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/adidas-tee.svg",
+        "./images/adidas-tee-alt.svg",
+        "./images/adidas-tee-detail.svg"
       ]
     },
     {
@@ -141,17 +133,17 @@
       "brand": "NIKE",
       "price": 35000,
       "description": "기모 후드 스웨트",
-      "image": "./images/nike-black.svg",
+      "image": "./images/nike-hoodie.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/nike-black.svg"
+          "image": "./images/nike-hoodie-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/nike-white.svg"
+          "image": "./images/nike-hoodie-detail.svg"
         }
       ],
       "stock": {
@@ -191,6 +183,11 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/nike-hoodie.svg",
+        "./images/nike-hoodie-alt.svg",
+        "./images/nike-hoodie-detail.svg"
       ]
     },
     {
@@ -199,17 +196,17 @@
       "brand": "ADIDAS",
       "price": 34000,
       "description": "캐주얼 후드티",
-      "image": "./images/adidas-black.svg",
+      "image": "./images/adidas-hoodie.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/adidas-black.svg"
+          "image": "./images/adidas-hoodie-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/adidas-white.svg"
+          "image": "./images/adidas-hoodie-detail.svg"
         }
       ],
       "stock": {
@@ -249,6 +246,11 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/adidas-hoodie.svg",
+        "./images/adidas-hoodie-alt.svg",
+        "./images/adidas-hoodie-detail.svg"
       ]
     },
     {
@@ -257,17 +259,17 @@
       "brand": "NIKE",
       "price": 32000,
       "description": "골프/캐주얼 폴로",
-      "image": "./images/nike-white.svg",
+      "image": "./images/nike-polo.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/nike-black.svg"
+          "image": "./images/nike-polo-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/nike-white.svg"
+          "image": "./images/nike-polo-detail.svg"
         }
       ],
       "stock": {
@@ -307,6 +309,11 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/nike-polo.svg",
+        "./images/nike-polo-alt.svg",
+        "./images/nike-polo-detail.svg"
       ]
     },
     {
@@ -315,17 +322,17 @@
       "brand": "ADIDAS",
       "price": 31000,
       "description": "스트레치 폴로셔츠",
-      "image": "./images/adidas-white.svg",
+      "image": "./images/adidas-polo.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/adidas-black.svg"
+          "image": "./images/adidas-polo-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/adidas-white.svg"
+          "image": "./images/adidas-polo-detail.svg"
         }
       ],
       "stock": {
@@ -365,6 +372,11 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/adidas-polo.svg",
+        "./images/adidas-polo-alt.svg",
+        "./images/adidas-polo-detail.svg"
       ]
     },
     {
@@ -373,17 +385,17 @@
       "brand": "NIKE",
       "price": 25000,
       "description": "라이트웨이트 반바지",
-      "image": "./images/nike.svg",
+      "image": "./images/nike-shorts.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/nike-black.svg"
+          "image": "./images/nike-shorts-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/nike-white.svg"
+          "image": "./images/nike-shorts-detail.svg"
         }
       ],
       "stock": {
@@ -423,6 +435,11 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/nike-shorts.svg",
+        "./images/nike-shorts-alt.svg",
+        "./images/nike-shorts-detail.svg"
       ]
     },
     {
@@ -431,17 +448,17 @@
       "brand": "ADIDAS",
       "price": 26000,
       "description": "3스트라이프 쇼츠",
-      "image": "./images/adidas.svg",
+      "image": "./images/adidas-shorts.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/adidas-black.svg"
+          "image": "./images/adidas-shorts-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/adidas-white.svg"
+          "image": "./images/adidas-shorts-detail.svg"
         }
       ],
       "stock": {
@@ -481,6 +498,11 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/adidas-shorts.svg",
+        "./images/adidas-shorts-alt.svg",
+        "./images/adidas-shorts-detail.svg"
       ]
     },
     {
@@ -489,17 +511,17 @@
       "brand": "NIKE",
       "price": 33000,
       "description": "테이퍼드 조거팬츠",
-      "image": "./images/nike-black.svg",
+      "image": "./images/nike-pants.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/nike-black.svg"
+          "image": "./images/nike-pants-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/nike-white.svg"
+          "image": "./images/nike-pants-detail.svg"
         }
       ],
       "stock": {
@@ -539,6 +561,11 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/nike-pants.svg",
+        "./images/nike-pants-alt.svg",
+        "./images/nike-pants-detail.svg"
       ]
     },
     {
@@ -547,17 +574,17 @@
       "brand": "ADIDAS",
       "price": 30000,
       "description": "클래식 트랙팬츠",
-      "image": "./images/adidas-black.svg",
+      "image": "./images/adidas-pants.svg",
       "colors": [
         {
           "id": "black",
           "name": "블랙",
-          "image": "./images/adidas-black.svg"
+          "image": "./images/adidas-pants-alt.svg"
         },
         {
           "id": "white",
           "name": "화이트",
-          "image": "./images/adidas-white.svg"
+          "image": "./images/adidas-pants-detail.svg"
         }
       ],
       "stock": {
@@ -597,6 +624,11 @@
           "id": "XXL",
           "label": "XXL (110)"
         }
+      ],
+      "images": [
+        "./images/adidas-pants.svg",
+        "./images/adidas-pants-alt.svg",
+        "./images/adidas-pants-detail.svg"
       ]
     }
   ],
