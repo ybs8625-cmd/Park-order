@@ -48,6 +48,21 @@ const IS_PAGES = !window.location.hostname.includes("127.0.0.1") && !window.loca
 const CATALOG_URLS = IS_PAGES
   ? ["./data/products.json"]
   : ["/api/catalog", "./data/products.json"];
+const GH_RAW = "https://raw.githubusercontent.com/ybs8625-cmd/Park-order/master/docs";
+
+function resolveImage(src) {
+  if (!src) return "";
+  if (src.startsWith("http") || src.startsWith("blob:") || src.startsWith("data:")) return src;
+  if (!IS_PAGES) {
+    if (src.startsWith("./")) return `/static/${src.slice(2)}`;
+    return src;
+  }
+  // Pages: 배포 지연 대비 raw GitHub로 표시
+  if (src.startsWith("./")) return `${GH_RAW}/${src.slice(2)}`;
+  if (src.startsWith("/static/")) return `${GH_RAW}/${src.slice("/static/".length)}`;
+  if (src.startsWith("images/")) return `${GH_RAW}/${src}`;
+  return src;
+}
 
 function currentProduct() {
   return (state.catalog?.products || []).find((p) => p.id === state.productId) || null;
@@ -109,7 +124,10 @@ function renderGallery(product) {
     return;
   }
   el.galleryTrack.innerHTML = images
-    .map((src) => `<img src="${src}" alt="" loading="lazy" data-full="${src}" />`)
+    .map((src) => {
+      const url = resolveImage(src);
+      return `<img src="${url}" alt="" loading="lazy" data-full="${url}" />`;
+    })
     .join("");
   el.productGallery.hidden = false;
 }
@@ -197,7 +215,7 @@ function updatePicker() {
 
   if (img) {
     el.previewImage.hidden = false;
-    el.previewImage.src = img;
+    el.previewImage.src = resolveImage(img);
     el.previewImage.alt = product ? `${product.brand} ${product.name}` : "";
   } else {
     el.previewImage.hidden = true;
@@ -236,7 +254,7 @@ function renderCart() {
     const row = document.createElement("div");
     row.className = "cart-row";
     row.innerHTML = `
-      <img src="${item.image}" alt="" />
+      <img src="${resolveImage(item.image)}" alt="" />
       <div>
         <p class="title">${item.brand} · ${item.name}</p>
         <p class="meta">${item.colorName} · ${item.sizeLabel} · ${item.quantity}개</p>

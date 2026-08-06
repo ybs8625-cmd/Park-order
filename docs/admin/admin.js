@@ -85,6 +85,7 @@
     editingProduct: null,
     extraColors: [],
     editingImages: [],
+    imagePreviewMap: {},
   };
 
   function money(n) {
@@ -452,14 +453,19 @@
 
   function productImageSrc(path) {
     if (!path) return "";
-    if (path.startsWith("http")) return path;
+    if (path.startsWith("http") || path.startsWith("blob:")) return path;
+    if (state.imagePreviewMap[path]) return state.imagePreviewMap[path];
     if (state.mode === "local") {
       if (path.startsWith("./")) return `/static/${path.slice(2)}`;
       return path;
     }
-    if (path.startsWith("/static/")) return `../${path.slice("/static/".length)}`;
-    if (path.startsWith("./")) return `../${path.slice(2)}`;
-    return path;
+    // Pages: github.io 배포 전에 파일이 안 보이므로 raw GitHub URL 사용
+    let docsRel = path;
+    if (path.startsWith("/static/")) docsRel = `docs/${path.slice("/static/".length)}`;
+    else if (path.startsWith("./")) docsRel = `docs/${path.slice(2)}`;
+    else if (path.startsWith("images/")) docsRel = `docs/${path}`;
+    else if (!path.startsWith("docs/")) docsRel = `docs/${path}`;
+    return `https://raw.githubusercontent.com/${cfgOwner()}/${cfgRepo()}/${branch()}/${docsRel}?t=${Date.now()}`;
   }
 
   function renderOrders(rows) {
@@ -772,6 +778,10 @@
     els.productModal.hidden = true;
     state.editingProduct = null;
     state.editingImages = [];
+    Object.values(state.imagePreviewMap).forEach((url) => {
+      if (String(url).startsWith("blob:")) URL.revokeObjectURL(url);
+    });
+    state.imagePreviewMap = {};
   }
 
   async function fileToBytes(file) {
@@ -785,11 +795,17 @@
       const headers = {};
       if (state.token) headers.Authorization = `Bearer ${state.token}`;
       const res = await fetch("/api/admin/upload", { method: "POST", headers, body: fd });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || "이미지 업로드 실패");
-      return state.mode === "local" ? data.local_path || data.docs_path : data.docs_path || data.local_path;
+      return data.local_path || data.docs_path;
+    }
+    if (!state.config?.token) {
+      throw new Error("GitHub 토큰이 없어 이미지를 올릴 수 없습니다. Pages 배포 설정을 확인하세요.");
     }
     const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    if (!["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)) {
+      throw new Error("지원하지 않는 이미지 형식입니다. (png/jpg/webp/gif/svg)");
+    }
     const filename = `upload-${Date.now()}-${Math.random().toString(16).slice(2, 6)}.${ext}`;
     const docsPath = `docs/images/${filename}`;
     const staticPath = `static/images/${filename}`;
@@ -807,8 +823,15 @@
     const files = [...(fileList || [])];
     if (!files.length) return;
     for (const file of files) {
-      const path = await uploadImage(file);
-      state.editingImages.push(path);
+      const blobUrl = URL.createObjectURL(file);
+      try {
+        const path = await uploadImage(file);
+        state.editingImages.push(path);
+        state.imagePreviewMap[path] = blobUrl;
+      } catch (err) {
+        URL.revokeObjectURL(blobUrl);
+        throw err;
+      }
     }
     renderImageList();
     els.pImageFile.value = "";
