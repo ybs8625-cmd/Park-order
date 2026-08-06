@@ -439,33 +439,61 @@
     if (username !== admin.username || password !== admin.password) {
       throw new Error("아이디 또는 비밀번호가 올바르지 않습니다.");
     }
-    state.token = btoa(unescape(encodeURIComponent(`${username}:${Date.now()}`)));
+    state.token = btoa(unescape(encodeURIComponent(`${username}:${password}:park`)));
     localStorage.setItem(TOKEN_KEY, state.token);
     localStorage.setItem(SESSION_KEY, "1");
   }
 
   async function ensureSession() {
-    // 새로고침 시 자동 입장 방지 — 항상 로그인 필요
-    clearSession();
-    showLogin();
-    return false;
+    if (!state.token || localStorage.getItem(SESSION_KEY) !== "1") {
+      clearSession();
+      showLogin();
+      return false;
+    }
+    if (state.mode === "local") {
+      try {
+        await api("/api/admin/me");
+        showAdmin();
+        return true;
+      } catch (_) {
+        clearSession();
+        showLogin();
+        return false;
+      }
+    }
+    // Pages: 저장된 로그인 유지
+    showAdmin();
+    return true;
+  }
+
+  function toRawGithubUrl(path) {
+    if (!path) return "";
+    let docsRel = path;
+    if (path.startsWith("/static/")) docsRel = `docs/${path.slice("/static/".length)}`;
+    else if (path.startsWith("./")) docsRel = `docs/${path.slice(2)}`;
+    else if (path.startsWith("images/")) docsRel = `docs/${path}`;
+    else if (!path.startsWith("docs/")) docsRel = `docs/${path}`;
+    return `https://raw.githubusercontent.com/${cfgOwner()}/${cfgRepo()}/${branch()}/${docsRel}`;
   }
 
   function productImageSrc(path) {
     if (!path) return "";
     if (path.startsWith("http") || path.startsWith("blob:")) return path;
     if (state.imagePreviewMap[path]) return state.imagePreviewMap[path];
-    if (state.mode === "local") {
-      if (path.startsWith("./")) return `/static/${path.slice(2)}`;
-      return path;
-    }
-    // Pages: github.io 배포 전에 파일이 안 보이므로 raw GitHub URL 사용
-    let docsRel = path;
-    if (path.startsWith("/static/")) docsRel = `docs/${path.slice("/static/".length)}`;
-    else if (path.startsWith("./")) docsRel = `docs/${path.slice(2)}`;
-    else if (path.startsWith("images/")) docsRel = `docs/${path}`;
-    else if (!path.startsWith("docs/")) docsRel = `docs/${path}`;
-    return `https://raw.githubusercontent.com/${cfgOwner()}/${cfgRepo()}/${branch()}/${docsRel}?t=${Date.now()}`;
+    // 상품/관리자 모두 GitHub raw 기준으로 맞춰 바로 보이게
+    return toRawGithubUrl(path);
+  }
+
+  function productThumb(product) {
+    if (Array.isArray(product?.images) && product.images.length) return product.images[0];
+    return product?.image || "";
+  }
+
+  function imgTag(path, extraClass = "") {
+    const src = productImageSrc(path);
+    const fallback = toRawGithubUrl(path);
+    const cls = extraClass ? ` class="${extraClass}"` : "";
+    return `<img${cls} src="${src}" data-fallback="${fallback}" alt="" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback;}" />`;
   }
 
   function renderOrders(rows) {
@@ -551,7 +579,7 @@
         const sizes = (p.sizes || []).map((s) => s.label || s.id).join(", ");
         return `
         <tr>
-          <td><img src="${productImageSrc(p.image)}" alt=""></td>
+          <td>${imgTag(productThumb(p))}</td>
           <td>${p.brand || ""}</td>
           <td>${p.name || ""}</td>
           <td>${money(p.price)}</td>
@@ -571,12 +599,22 @@
 
   async function loadProducts() {
     if (state.mode === "local") {
-      const data = await api("/api/admin/products");
-      state.catalog = {
-        shipping_fee: data.shipping_fee,
-        default_sizes: data.default_sizes || DEFAULT_SIZES,
-        products: data.products || [],
-      };
+      // 로컬도 GitHub 최신 상품을 우선 반영해 주문페이지와 맞춤
+      try {
+        const res = await fetch(rawUrl("docs/data/products.json"), { cache: "no-store" });
+        if (res.ok) {
+          state.catalog = await res.json();
+        } else {
+          throw new Error("remote catalog");
+        }
+      } catch (_) {
+        const data = await api("/api/admin/products");
+        state.catalog = {
+          shipping_fee: data.shipping_fee,
+          default_sizes: data.default_sizes || DEFAULT_SIZES,
+          products: data.products || [],
+        };
+      }
     } else {
       await loadCatalogPages();
     }
@@ -732,7 +770,7 @@
       .map(
         (src, idx) => `
       <div class="image-item" data-idx="${idx}">
-        <img src="${productImageSrc(src)}" alt="" />
+        ${imgTag(src)}
         ${idx === 0 ? `<span class="badge">대표</span>` : ""}
         <button type="button" class="remove-img" data-remove-img="${idx}" aria-label="삭제">×</button>
       </div>`

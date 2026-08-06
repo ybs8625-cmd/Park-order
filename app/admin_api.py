@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import base64
 import csv
+import hashlib
 import io
 import json
 import os
 import re
-import secrets
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -30,6 +30,7 @@ from app.catalog_io import (
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 SESSIONS: dict[str, float] = {}
+TOKEN_SALT = "park-order-admin-v1"
 
 
 class LoginBody(BaseModel):
@@ -55,12 +56,22 @@ class ProductBody(BaseModel):
     stock: dict[str, dict[str, int]] = Field(default_factory=dict)
 
 
+def make_admin_token(admin: dict[str, Any]) -> str:
+    raw = f"{admin.get('username','')}:{admin.get('password','')}:{TOKEN_SALT}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
 def require_auth(authorization: str | None) -> None:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
     token = authorization.removeprefix("Bearer ").strip()
-    if token not in SESSIONS:
-        raise HTTPException(status_code=401, detail="세션이 만료되었습니다. 다시 로그인해 주세요.")
+    if token in SESSIONS:
+        return
+    admin = load_admin()
+    if token and token == make_admin_token(admin):
+        SESSIONS[token] = datetime.now().timestamp()
+        return
+    raise HTTPException(status_code=401, detail="세션이 만료되었습니다. 다시 로그인해 주세요.")
 
 
 def slugify(text: str) -> str:
@@ -135,7 +146,7 @@ def login(body: LoginBody) -> dict[str, Any]:
     admin = load_admin()
     if body.username != admin.get("username") or body.password != admin.get("password"):
         raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
-    token = secrets.token_urlsafe(24)
+    token = make_admin_token(admin)
     SESSIONS[token] = datetime.now().timestamp()
     return {"ok": True, "token": token, "username": admin.get("username")}
 
