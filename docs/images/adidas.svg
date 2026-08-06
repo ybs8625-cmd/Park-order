@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-label="Adidas">
+  <defs>
+    <linearGradient id="g" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16343a"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="640" rx="48" fill="url(#g)"/>
+  <path d="M220 420l50-140 50 140h-100z" fill="#fff"/>
+  <path d="M300 420l55-155 55 155h-110z" fill="#fff" opacity="0.85"/>
+  <path d="M385 420l60-170 60 170h-120z" fill="#fff" opacity="0.7"/>
+  <text x="48" y="88" fill="#fff" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="3">ADIDAS</text>
+</svg>

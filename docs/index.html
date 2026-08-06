@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Park Order · 박사장네 의류 주문 요청서</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="layout" id="layout">
+    <main class="shell">
+      <header class="top">
+        <div>
+          <p class="brand">Park Order</p>
+          <h1>박사장네 의류 주문 요청서 작성</h1>
+          <p class="sub">상품을 담은 뒤 배송 정보를 입력해 주세요.</p>
+        </div>
+      </header>
+
+      <form id="orderForm" novalidate>
+        <section class="card">
+          <div class="section-head compact">
+            <h2>상품 선택</h2>
+          </div>
+
+          <div class="select-grid">
+            <label class="field field-product">
+              <span>품목</span>
+              <select id="productSelect" required>
+                <option value="">품목을 선택하세요</option>
+              </select>
+            </label>
+            <label class="field field-color">
+              <span>색상</span>
+              <select id="colorSelect" required disabled>
+                <option value="">색상</option>
+              </select>
+            </label>
+            <label class="field field-size">
+              <span>사이즈</span>
+              <select id="sizeSelect" required disabled>
+                <option value="">사이즈</option>
+              </select>
+            </label>
+            <label class="field field-qty">
+              <span>수량</span>
+              <div class="qty">
+                <button type="button" id="qtyMinus" aria-label="수량 감소">−</button>
+                <input type="number" id="quantity" min="1" value="1" readonly />
+                <button type="button" id="qtyPlus" aria-label="수량 증가">+</button>
+              </div>
+            </label>
+          </div>
+
+          <div class="pick-bar">
+            <div class="pick-meta">
+              <img id="previewImage" alt="" hidden />
+              <div>
+                <p class="pick-price" id="pickPrice">-</p>
+                <p class="stock-line" id="stockLine">남은 수량: -</p>
+              </div>
+            </div>
+            <button type="button" class="add-btn" id="addCartBtn">장바구니 담기</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-head compact">
+            <h2>배송 정보</h2>
+          </div>
+          <div class="fields">
+            <label class="field">
+              <span>이름</span>
+              <input id="name" name="name" type="text" autocomplete="name" placeholder="홍길동" required />
+            </label>
+            <label class="field">
+              <span>연락처</span>
+              <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="010-1234-5678" required />
+            </label>
+            <div class="field full">
+              <span>주소</span>
+              <div class="addr-row">
+                <input id="zonecode" name="zonecode" type="text" readonly placeholder="우편번호" />
+                <input id="addressBase" name="addressBase" type="text" readonly placeholder="도로명/지번 주소" required />
+                <button type="button" class="addr-search-btn" id="addrSearchBtn">주소검색</button>
+              </div>
+              <div id="postcodeLayer" class="postcode-layer" hidden>
+                <div class="postcode-layer-bar">
+                  <span>주소 검색</span>
+                  <button type="button" id="postcodeCloseBtn" aria-label="닫기">닫기</button>
+                </div>
+                <div id="postcodeEmbed"></div>
+              </div>
+              <input id="addressDetail" name="addressDetail" type="text" placeholder="상세주소 (동·호수 등)" autocomplete="address-line2" />
+            </div>
+            <label class="field full">
+              <span>메모 <em>(선택)</em></span>
+              <textarea id="memo" name="memo" rows="2" placeholder="배송 요청사항이 있으면 적어 주세요."></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="card notices">
+          <details id="noticeDetails">
+            <summary>배송 · 교환 · 반품 안내</summary>
+            <div class="notice-block">
+              <h3>배송안내</h3>
+              <p id="noticeShipping"></p>
+              <h3>사이즈 교환 · 왕복배송비</h3>
+              <p id="noticeExchange"></p>
+              <h3>의류 반품불가 안내</h3>
+              <p id="noticeReturn"></p>
+            </div>
+          </details>
+        </section>
+
+        <p class="form-error" id="formError" hidden></p>
+      </form>
+
+      <p class="foot muted">Park Order 웹 주문 페이지</p>
+    </main>
+
+    <div class="cart-anchor" id="cartAnchor" aria-hidden="true"></div>
+  </div>
+
+  <aside class="cart-side" id="cartSide" aria-label="장바구니">
+    <div class="cart-head">
+      <div>
+        <p class="cart-title">장바구니</p>
+        <p class="cart-count-line">담은 상품 <strong id="cartCount">0</strong></p>
+      </div>
+      <button type="button" class="expand-btn" id="cartExpandBtn" aria-pressed="false" title="장바구니 확대">
+        확대
+      </button>
+    </div>
+    <div class="cart-panel" id="cartPanel">
+      <div class="cart-items" id="cartItems">
+        <p class="cart-empty">담긴 상품이 없습니다.</p>
+      </div>
+      <dl class="summary">
+        <div class="row">
+          <dt>상품 금액</dt>
+          <dd id="itemTotal">0원</dd>
+        </div>
+        <div class="row">
+          <dt>배송비</dt>
+          <dd id="shippingFee">3,500원</dd>
+        </div>
+        <div class="row total">
+          <dt>합계</dt>
+          <dd id="grandTotal">3,500원</dd>
+        </div>
+      </dl>
+      <button type="submit" form="orderForm" class="submit" id="submitBtn">주문완료</button>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" hidden role="status" aria-live="polite">
+    <div class="toast-card">
+      <p class="toast-title">배송요청이 완료 되었습니다.</p>
+      <p class="toast-body" id="toastBody"></p>
+      <button type="button" id="toastClose">확인</button>
+    </div>
+  </div>
+
+  <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
