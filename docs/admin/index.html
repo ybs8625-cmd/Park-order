@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <title>Park Order · 관리자</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./admin.css?v=1" />
+</head>
+<body>
+  <div class="bg"></div>
+
+  <section id="loginView" class="login-wrap">
+    <form id="loginForm" class="login-card">
+      <p class="brand">Park Order</p>
+      <h1>관리자 로그인</h1>
+      <label>
+        <span>아이디</span>
+        <input id="loginId" type="text" value="admin" autocomplete="username" required />
+      </label>
+      <label>
+        <span>비밀번호</span>
+        <input id="loginPw" type="password" value="" autocomplete="current-password" required />
+      </label>
+      <button type="submit">로그인</button>
+      <p id="loginError" class="error" hidden></p>
+      <a class="back-link" id="backToShop" href="../">← 주문 페이지로</a>
+    </form>
+  </section>
+
+  <div id="adminView" class="admin-shell" hidden>
+    <aside class="sidebar">
+      <p class="brand">Park Order</p>
+      <h2>관리자</h2>
+      <nav>
+        <button type="button" class="nav-btn active" data-panel="orders">주문내역</button>
+        <button type="button" class="nav-btn" data-panel="products">상품관리</button>
+        <button type="button" class="nav-btn" data-panel="password">비밀번호 변경</button>
+      </nav>
+      <button type="button" class="logout" id="logoutBtn">로그아웃</button>
+    </aside>
+
+    <main class="content">
+      <section id="ordersPanel" class="panel">
+        <div class="panel-head">
+          <h1>주문내역</h1>
+          <button type="button" class="primary" id="downloadOrdersBtn">내려받기</button>
+        </div>
+        <div class="filters">
+          <label>
+            <span>시작일</span>
+            <input type="date" id="dateFrom" />
+          </label>
+          <label>
+            <span>종료일</span>
+            <input type="date" id="dateTo" />
+          </label>
+          <button type="button" class="secondary" id="searchOrdersBtn">조회</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>주문시간</th>
+                <th>주문번호</th>
+                <th>이름</th>
+                <th>연락처</th>
+                <th>품목</th>
+                <th>옵션</th>
+                <th>수량</th>
+                <th>금액</th>
+                <th>합계</th>
+              </tr>
+            </thead>
+            <tbody id="ordersBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="productsPanel" class="panel" hidden>
+        <div class="panel-head">
+          <h1>상품관리</h1>
+          <button type="button" class="primary" id="newProductBtn">신규등록</button>
+        </div>
+        <div class="table-wrap">
+          <table class="product-table">
+            <thead>
+              <tr>
+                <th>이미지</th>
+                <th>브랜드</th>
+                <th>품명</th>
+                <th>가격</th>
+                <th>색상</th>
+                <th>사이즈</th>
+                <th>재고합</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="productsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="passwordPanel" class="panel" hidden>
+        <div class="panel-head">
+          <h1>비밀번호 변경</h1>
+        </div>
+        <form id="passwordForm" class="password-form">
+          <label>
+            <span>현재 비밀번호</span>
+            <input type="password" id="pwCurrent" required />
+          </label>
+          <label>
+            <span>새 비밀번호</span>
+            <input type="password" id="pwNew" minlength="4" required />
+          </label>
+          <label>
+            <span>새 비밀번호 확인</span>
+            <input type="password" id="pwNew2" minlength="4" required />
+          </label>
+          <button type="submit" class="primary">변경하기</button>
+          <p id="passwordMsg" class="msg" hidden></p>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="productModal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="modalTitle">상품 수정</h2>
+        <button type="button" id="modalClose">닫기</button>
+      </div>
+      <form id="productForm" class="product-form">
+        <input type="hidden" id="productId" />
+        <div class="form-grid">
+          <label>
+            <span>브랜드</span>
+            <input id="pBrand" required />
+          </label>
+          <label>
+            <span>품명</span>
+            <input id="pName" required />
+          </label>
+          <label>
+            <span>가격</span>
+            <input id="pPrice" type="number" min="0" step="1000" required />
+          </label>
+          <label>
+            <span>설명</span>
+            <input id="pDesc" />
+          </label>
+        </div>
+
+        <label class="full">
+          <span>대표 이미지</span>
+          <div class="image-row">
+            <img id="pImagePreview" alt="" />
+            <input type="file" id="pImageFile" accept="image/*" />
+          </div>
+          <input type="hidden" id="pImage" />
+        </label>
+
+        <label class="full">
+          <span>색상 (쉼표로 구분, 예: 블랙,화이트)</span>
+          <input id="pColors" placeholder="블랙,화이트" required />
+        </label>
+
+        <label class="full">
+          <span>사이즈 (쉼표로 구분, 예: S(90),M(95),L(100))</span>
+          <input id="pSizes" placeholder="S(90),M(95),L(100),XL(105),XXL(110)" required />
+        </label>
+
+        <div class="full">
+          <span class="label">재고 (색상 × 사이즈)</span>
+          <div id="stockGrid" class="stock-grid"></div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="modalCancel">취소</button>
+          <button type="submit" class="primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <script src="../config.js?v=9"></script>
+  <script src="./admin.js?v=1"></script>
+</body>
+</html>

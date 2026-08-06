@@ -94,13 +94,17 @@ function fillColorSelect() {
   el.colorSelect.value = state.color;
 }
 
+function productSizes(product) {
+  return product?.sizes || state.catalog?.default_sizes || state.catalog?.sizes || [];
+}
+
 function fillSizeSelect() {
   const product = currentProduct();
   el.sizeSelect.innerHTML = '<option value="">사이즈</option>';
   el.sizeSelect.disabled = !product || !state.color;
   if (!product || !state.color) return;
 
-  for (const size of state.catalog.sizes || []) {
+  for (const size of productSizes(product)) {
     const stock = product.stock?.[state.color]?.[size.id] ?? 0;
     const reserved = state.cart
       .filter((c) => c.productId === product.id && c.color === state.color && c.size === size.id)
@@ -218,7 +222,7 @@ function addToCart() {
   }
 
   const color = (product.colors || []).find((c) => c.id === state.color);
-  const size = (state.catalog.sizes || []).find((s) => s.id === state.size);
+  const size = productSizes(product).find((s) => s.id === state.size);
   const keySame = state.cart.find(
     (c) => c.productId === product.id && c.color === state.color && c.size === state.size
   );
@@ -363,7 +367,7 @@ function buildLocalOrder(payload) {
     }
     product.stock[line.color][line.size] = stock - line.quantity;
     const colorName = (product.colors || []).find((c) => c.id === line.color)?.name || line.color;
-    const sizeLabel = (state.catalog.sizes || []).find((s) => s.id === line.size)?.label || line.size;
+    const sizeLabel = productSizes(product).find((s) => s.id === line.size)?.label || line.size;
     const lineTotal = product.price * line.quantity;
     itemTotal += lineTotal;
     items.push({

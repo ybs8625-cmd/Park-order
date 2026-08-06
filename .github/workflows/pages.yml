@@ -36,6 +36,7 @@ jobs:
           cfg = {
             "githubOwner": "ybs8625-cmd",
             "githubRepo": "Park-order",
+            "branch": "master",
             "token": token,
           }
           Path("docs/config.js").write_text(

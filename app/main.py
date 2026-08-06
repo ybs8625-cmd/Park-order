@@ -9,18 +9,16 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-import yaml
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
+from app.admin_api import router as admin_router
+from app.catalog_io import ORDERS_CSV, load_catalog, save_catalog
 from app.csv_orders import append_order_csv
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "data"
-PRODUCTS_PATH = DATA_DIR / "products.yaml"
-ORDERS_CSV_PATH = DATA_DIR / "orders.csv"
 KST = timezone(timedelta(hours=9))
 
 
@@ -39,32 +37,12 @@ def load_dotenv() -> None:
 load_dotenv()
 
 app = FastAPI(title="Park Order")
+app.include_router(admin_router)
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
-
-
-def load_yaml(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    with path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    return data
-
-
-def save_yaml(path: Path, data: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(
-            data,
-            f,
-            allow_unicode=True,
-            sort_keys=False,
-            default_flow_style=False,
-            width=120,
-        )
+app.mount("/admin", StaticFiles(directory=ROOT / "docs" / "admin", html=True), name="admin")
 
 
 def push_order_to_github(order: dict[str, Any]) -> None:
-    """Trigger GitHub Action to append order rows into data/orders.csv."""
     token = os.getenv("ORDER_WRITE_TOKEN", "").strip()
     owner = os.getenv("GITHUB_OWNER", "ybs8625-cmd").strip()
     repo = os.getenv("GITHUB_REPO", "Park-order").strip()
@@ -116,16 +94,20 @@ def index() -> FileResponse:
     return FileResponse(ROOT / "templates" / "index.html")
 
 
+@app.get("/api/health")
+def health() -> dict[str, str]:
+    return {"ok": "true", "service": "park-order"}
+
+
 @app.get("/api/catalog")
 def catalog() -> dict[str, Any]:
-    return load_yaml(PRODUCTS_PATH)
+    return load_catalog()
 
 
 @app.post("/api/orders")
 def create_order(payload: OrderRequest) -> dict[str, Any]:
-    catalog_data = load_yaml(PRODUCTS_PATH)
+    catalog_data = load_catalog()
     products = catalog_data.get("products") or []
-    size_ids = {s.get("id") for s in catalog_data.get("sizes") or []}
     shipping_fee = int(catalog_data.get("shipping_fee") or 3500)
 
     aggregated: dict[tuple[str, str, str], int] = {}
@@ -146,6 +128,8 @@ def create_order(payload: OrderRequest) -> dict[str, Any]:
         color_ids = {c.get("id") for c in product.get("colors") or []}
         if color not in color_ids:
             raise HTTPException(status_code=400, detail=f"선택할 수 없는 색상입니다: {product.get('name')}")
+
+        size_ids = {s.get("id") for s in (product.get("sizes") or catalog_data.get("default_sizes") or [])}
         if size not in size_ids:
             raise HTTPException(status_code=400, detail=f"선택할 수 없는 사이즈입니다: {size}")
 
@@ -167,7 +151,11 @@ def create_order(payload: OrderRequest) -> dict[str, Any]:
             color,
         )
         size_label = next(
-            (s.get("label") for s in catalog_data.get("sizes") or [] if s.get("id") == size),
+            (
+                s.get("label")
+                for s in (product.get("sizes") or catalog_data.get("default_sizes") or [])
+                if s.get("id") == size
+            ),
             size,
         )
 
@@ -182,7 +170,7 @@ def create_order(payload: OrderRequest) -> dict[str, Any]:
             }
         )
 
-    save_yaml(PRODUCTS_PATH, catalog_data)
+    save_catalog(catalog_data)
 
     order = {
         "주문번호": order_id,
@@ -200,10 +188,7 @@ def create_order(payload: OrderRequest) -> dict[str, Any]:
         "결제합계": item_total + shipping_fee,
     }
 
-    # 하나의 CSV에 계속 이어붙임
-    append_order_csv(ORDERS_CSV_PATH, order)
-
-    # GitHub 저장소 CSV에도 반영
+    append_order_csv(ORDERS_CSV, order)
     push_order_to_github(order)
 
     return {
