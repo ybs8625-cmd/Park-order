@@ -24,6 +24,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Inject GitHub order config
+        env:
+          ORDER_WRITE_TOKEN: ${{ secrets.ORDER_WRITE_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          token = os.environ.get("ORDER_WRITE_TOKEN") or ""
+          cfg = {
+            "githubOwner": "ybs8625-cmd",
+            "githubRepo": "Park-order",
+            "token": token,
+          }
+          Path("docs/config.js").write_text(
+              "window.PARK_ORDER_CONFIG = " + json.dumps(cfg, ensure_ascii=False) + ";\n",
+              encoding="utf-8",
+          )
+          print("config.js written; token_set=" + str(bool(token)))
+          PY
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

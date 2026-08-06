@@ -1,0 +1,76 @@
+name: Save Order to YAML
+
+on:
+  repository_dispatch:
+    types: [park-order-submit]
+
+permissions:
+  contents: write
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml==6.0.2
+
+      - name: Append order and commit
+        env:
+          ORDER_JSON: ${{ toJson(github.event.client_payload.order) }}
+        run: |
+          python <<'PY'
+          import json, os
+          from pathlib import Path
+          import yaml
+
+          raw = os.environ.get("ORDER_JSON") or ""
+          if not raw or raw == "null":
+              raise SystemExit("주문 데이터가 없습니다.")
+
+          order = json.loads(raw)
+          if not isinstance(order, dict) or "주문번호" not in order:
+              raise SystemExit("주문 형식이 올바르지 않습니다.")
+
+          root = Path(".")
+          orders_path = root / "data" / "orders.yaml"
+          single_dir = root / "data" / "orders"
+          single_dir.mkdir(parents=True, exist_ok=True)
+
+          data = {}
+          if orders_path.exists():
+              data = yaml.safe_load(orders_path.read_text(encoding="utf-8")) or {}
+          orders = data.get("orders") or []
+          if any(o.get("주문번호") == order.get("주문번호") for o in orders if isinstance(o, dict)):
+              print("이미 저장된 주문번호입니다. 건너뜁니다.")
+          else:
+              orders.append(order)
+              data["orders"] = orders
+              orders_path.write_text(
+                  yaml.safe_dump(data, allow_unicode=True, sort_keys=False, default_flow_style=False, width=120),
+                  encoding="utf-8",
+              )
+              single_path = single_dir / f"{order['주문번호']}.yaml"
+              single_path.write_text(
+                  yaml.safe_dump(order, allow_unicode=True, sort_keys=False, default_flow_style=False, width=120),
+                  encoding="utf-8",
+              )
+              print(f"저장 완료: {order['주문번호']}")
+          PY
+
+      - name: Commit order files
+        run: |
+          git config user.name "park-order-bot"
+          git config user.email "park-order-bot@users.noreply.github.com"
+          git add data/orders.yaml data/orders/
+          if git diff --staged --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -m "Add new park order"
+          git push

@@ -320,6 +320,35 @@ function downloadYaml(order) {
   URL.revokeObjectURL(url);
 }
 
+function githubConfig() {
+  return window.PARK_ORDER_CONFIG || {};
+}
+
+async function submitOrderToGitHub(order) {
+  const cfg = githubConfig();
+  if (!cfg.token || !cfg.githubOwner || !cfg.githubRepo) {
+    return { ok: false, reason: "missing-token" };
+  }
+  const res = await fetch(`https://api.github.com/repos/${cfg.githubOwner}/${cfg.githubRepo}/dispatches`, {
+    method: "POST",
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${cfg.token}`,
+      "Content-Type": "application/json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    body: JSON.stringify({
+      event_type: "park-order-submit",
+      client_payload: { order },
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`GitHub 주문 저장 실패 (${res.status}) ${text}`);
+  }
+  return { ok: true };
+}
+
 function buildLocalOrder(payload) {
   const shipping = state.catalog.shipping_fee || 3500;
   const items = [];
@@ -369,7 +398,6 @@ function buildLocalOrder(payload) {
   const saved = JSON.parse(localStorage.getItem(key) || '{"orders":[]}');
   saved.orders.push(order);
   localStorage.setItem(key, JSON.stringify(saved));
-  downloadYaml(order);
   return {
     ok: true,
     message: "주문이 정상적으로 완료 되었습니다.\n판매자가 연락 드리겠습니다.",
@@ -609,6 +637,21 @@ el.form.addEventListener("submit", async (event) => {
       }
     } else {
       data = buildLocalOrder(payload);
+    }
+
+    // 웹/로컬 모두 GitHub에 YAML로 남기기 시도
+    try {
+      const gh = await submitOrderToGitHub(data.order);
+      if (IS_PAGES && !gh.ok) {
+        downloadYaml(data.order);
+      }
+    } catch (ghErr) {
+      if (IS_PAGES) {
+        downloadYaml(data.order);
+        console.warn(ghErr);
+      } else {
+        console.warn(ghErr);
+      }
     }
 
     el.toastBody.textContent = "판매자가 연락 드리겠습니다.";

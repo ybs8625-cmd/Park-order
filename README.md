@@ -6,6 +6,20 @@
 
 - **웹 페이지:** https://ybs8625-cmd.github.io/Park-order/
 - **저장소:** https://github.com/ybs8625-cmd/Park-order
+- **주문 YAML:** https://github.com/ybs8625-cmd/Park-order/blob/master/data/orders.yaml
+
+## 주문을 GitHub에 남기기
+
+웹에서 주문이 `data/orders.yaml`에 자동 커밋되려면 저장소 Secret이 필요합니다.
+
+1. GitHub → Settings → Developer settings → Personal access tokens  
+   - Classic token 권장, 권한: `repo`
+2. 저장소 `Park-order` → Settings → Secrets and variables → Actions  
+   - Name: `ORDER_WRITE_TOKEN`  
+   - Value: 방금 만든 토큰
+3. 푸시 후 Pages가 다시 배포되면 웹 주문도 GitHub YAML에 쌓입니다.
+
+로컬 서버도 `.env`에 같은 토큰을 넣으면 GitHub로 동기화됩니다.
 
 ## 로컬 실행 (YAML 저장)
 

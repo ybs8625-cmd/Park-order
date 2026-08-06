@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import os
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
@@ -17,6 +21,21 @@ ORDERS_DIR = DATA_DIR / "orders"
 PRODUCTS_PATH = DATA_DIR / "products.yaml"
 ORDERS_PATH = DATA_DIR / "orders.yaml"
 KST = timezone(timedelta(hours=9))
+
+
+def load_dotenv() -> None:
+    env_path = ROOT / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+load_dotenv()
 
 app = FastAPI(title="Park Order")
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
@@ -41,6 +60,34 @@ def save_yaml(path: Path, data: dict[str, Any]) -> None:
             default_flow_style=False,
             width=120,
         )
+
+
+def push_order_to_github(order: dict[str, Any]) -> None:
+    """Trigger GitHub Action to commit order YAML into the repository."""
+    token = os.getenv("ORDER_WRITE_TOKEN", "").strip()
+    owner = os.getenv("GITHUB_OWNER", "ybs8625-cmd").strip()
+    repo = os.getenv("GITHUB_REPO", "Park-order").strip()
+    if not token:
+        return
+    payload = json.dumps({"event_type": "park-order-submit", "client_payload": {"order": order}}).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{owner}/{repo}/dispatches",
+        data=payload,
+        method="POST",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "park-order",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            resp.read()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="ignore")
+        raise HTTPException(status_code=502, detail=f"GitHub 주문 저장 실패: {exc.code} {detail}") from exc
 
 
 class CartItem(BaseModel):
@@ -162,6 +209,9 @@ def create_order(payload: OrderRequest) -> dict[str, Any]:
     ORDERS_DIR.mkdir(parents=True, exist_ok=True)
     single_path = ORDERS_DIR / f"{order_id}.yaml"
     save_yaml(single_path, order)
+
+    # GitHub 저장소에도 YAML로 남김 (ORDER_WRITE_TOKEN 있을 때)
+    push_order_to_github(order)
 
     return {
         "ok": True,

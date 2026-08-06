@@ -8,3 +8,5 @@ __pycache__/
 .vscode/
 data/orders/*.yaml
 !data/orders/.gitkeep
+docs/config.js
+.env
