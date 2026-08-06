@@ -396,10 +396,15 @@ function pinCartBottom() {
     ? notices.getBoundingClientRect().bottom
     : window.innerHeight - 20;
   const bottomGap = Math.max(12, Math.round(window.innerHeight - noticesBottom));
-  const maxHeight = Math.max(240, Math.round(noticesBottom - 20));
+  const maxHeight = Math.max(280, Math.min(Math.round(noticesBottom - 24), Math.round(window.innerHeight - 48)));
+  const expanded = el.cartSide.classList.contains("is-expanded");
+  const width = expanded
+    ? Math.min(420, Math.round(anchorRect.width + 100))
+    : Math.round(anchorRect.width);
+  const left = Math.round(anchorRect.right - width);
 
-  el.cartSide.style.left = `${Math.round(anchorRect.left)}px`;
-  el.cartSide.style.width = `${Math.round(anchorRect.width)}px`;
+  el.cartSide.style.left = `${Math.max(16, left)}px`;
+  el.cartSide.style.width = `${width}px`;
   el.cartSide.style.bottom = `${bottomGap}px`;
   el.cartSide.style.top = "auto";
   el.cartSide.style.right = "auto";
@@ -407,10 +412,14 @@ function pinCartBottom() {
 }
 
 el.cartExpandBtn.addEventListener("click", () => {
-  const expanded = el.layout.classList.toggle("cart-expanded");
-  el.cartSide.classList.toggle("is-expanded", expanded);
+  const expanded = el.cartSide.classList.toggle("is-expanded");
+  el.layout.classList.remove("cart-expanded");
   el.cartExpandBtn.setAttribute("aria-pressed", expanded ? "true" : "false");
   el.cartExpandBtn.textContent = expanded ? "축소" : "확대";
+  requestAnimationFrame(pinCartBottom);
+});
+
+document.getElementById("noticeDetails")?.addEventListener("toggle", () => {
   requestAnimationFrame(pinCartBottom);
 });
 
@@ -569,7 +578,7 @@ el.form.addEventListener("submit", async (event) => {
 });
 
 const noticeDetails = document.getElementById("noticeDetails");
-if (noticeDetails) noticeDetails.open = false;
+if (noticeDetails) noticeDetails.open = true;
 
 loadCatalog()
   .then(() => requestAnimationFrame(pinCartBottom))
