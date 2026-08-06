@@ -602,33 +602,25 @@ function pinCart() {
     el.cartSide.style.left = "";
     el.cartSide.style.width = "";
     el.cartSide.style.top = "";
+    el.cartSide.style.right = "";
     el.cartSide.style.bottom = "";
     el.cartSide.style.height = "";
     el.cartSide.style.maxHeight = "";
     return;
   }
 
+  // 스크롤해도 우측 하단에 고정, 가로는 레이아웃 앵커에 맞춤
   const anchorRect = el.cartAnchor.getBoundingClientRect();
-  const shipping = document.getElementById("shippingCard");
-  const shipRect = shipping?.getBoundingClientRect();
-  const width = Math.round(anchorRect.width);
+  const width = Math.max(240, Math.round(anchorRect.width));
   const left = Math.round(anchorRect.left);
 
   el.cartSide.style.left = `${left}px`;
   el.cartSide.style.width = `${width}px`;
   el.cartSide.style.right = "auto";
-  el.cartSide.style.bottom = "auto";
-
-  if (shipRect && shipRect.height > 0) {
-    el.cartSide.style.top = `${Math.round(shipRect.top)}px`;
-    el.cartSide.style.height = `${Math.round(shipRect.height)}px`;
-    el.cartSide.style.maxHeight = `${Math.round(shipRect.height)}px`;
-  } else {
-    el.cartSide.style.top = "";
-    el.cartSide.style.height = "";
-    el.cartSide.style.maxHeight = "70vh";
-    el.cartSide.style.bottom = "20px";
-  }
+  el.cartSide.style.top = "auto";
+  el.cartSide.style.bottom = "20px";
+  el.cartSide.style.height = "auto";
+  el.cartSide.style.maxHeight = "calc(100vh - 40px)";
 }
 
 document.getElementById("noticeDetails")?.addEventListener("toggle", () => {

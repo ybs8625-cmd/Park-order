@@ -543,7 +543,10 @@ h1 {
 .cart-side {
   position: fixed;
   z-index: 30;
+  right: max(16px, calc((100vw - min(1080px, calc(100% - 32px))) / 2));
+  bottom: 20px;
   width: var(--cart-w);
+  max-height: calc(100vh - 40px);
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--line);
   border-radius: 18px;
