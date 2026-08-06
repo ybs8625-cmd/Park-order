@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./admin.css?v=8" />
+  <link rel="stylesheet" href="./admin.css?v=9" />
 </head>
 <body>
   <div class="bg"></div>
@@ -47,7 +47,10 @@
     <main class="content">
       <section id="ordersPanel" class="panel">
         <div class="panel-head">
-          <h1>주문내역</h1>
+          <div>
+            <h1>주문내역</h1>
+            <p class="refresh-status" id="ordersRefreshStatus">자동 새로고침 대기 중</p>
+          </div>
           <button type="button" class="primary" id="downloadOrdersBtn">내려받기</button>
         </div>
         <div class="filters">
@@ -110,6 +113,7 @@
           <div>
             <h1>주문통계</h1>
             <p class="stats-range" id="statsRangeLabel">최근 7일</p>
+            <p class="refresh-status" id="statsRefreshStatus">자동 새로고침 대기 중</p>
           </div>
           <div class="period-tabs" id="statsPeriodTabs">
             <button type="button" class="period-tab active" data-period="weekly">주간</button>
@@ -283,6 +287,6 @@
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="../config.js?v=10"></script>
-  <script src="./admin.js?v=11"></script>
+  <script src="./admin.js?v=12"></script>
 </body>
 </html>

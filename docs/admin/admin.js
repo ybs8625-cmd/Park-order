@@ -49,6 +49,8 @@
     kpiQty: document.getElementById("kpiQty"),
     kpiRevenue: document.getElementById("kpiRevenue"),
     kpiAvg: document.getElementById("kpiAvg"),
+    ordersRefreshStatus: document.getElementById("ordersRefreshStatus"),
+    statsRefreshStatus: document.getElementById("statsRefreshStatus"),
     dateFrom: document.getElementById("dateFrom"),
     dateTo: document.getElementById("dateTo"),
     searchOrdersBtn: document.getElementById("searchOrdersBtn"),
@@ -95,6 +97,10 @@
     imagePreviewMap: {},
     statsPeriod: "weekly",
     chartInstances: {},
+    activePanel: "orders",
+    pollTimer: null,
+    ordersFingerprint: "",
+    pollBusy: false,
   };
 
   function money(n) {
@@ -189,12 +195,77 @@
   }
 
   function setPanel(name) {
+    state.activePanel = name;
     Object.entries(els.panels).forEach(([key, el]) => {
       el.hidden = key !== name;
     });
     els.navBtns.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.panel === name);
     });
+    restartPolling();
+  }
+
+  function nowTimeLabel() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  function setRefreshStatus(text, isNew = false) {
+    const targets = [];
+    if (state.activePanel === "orders" && els.ordersRefreshStatus) targets.push(els.ordersRefreshStatus);
+    if (state.activePanel === "stats" && els.statsRefreshStatus) targets.push(els.statsRefreshStatus);
+    targets.forEach((el) => {
+      el.textContent = text;
+      el.classList.toggle("is-new", isNew);
+    });
+  }
+
+  function ordersFingerprint(rows) {
+    return rows
+      .map((r) => `${r["주문번호"]}|${r["주문시간"]}|${r["품목"]}|${r["수량"]}|${r["결제합계"]}`)
+      .join("\n");
+  }
+
+  function stopPolling() {
+    if (state.pollTimer) {
+      clearInterval(state.pollTimer);
+      state.pollTimer = null;
+    }
+  }
+
+  function restartPolling() {
+    stopPolling();
+    if (!state.token) return;
+    if (state.activePanel !== "orders" && state.activePanel !== "stats") return;
+    state.pollTimer = setInterval(() => {
+      pollActivePanel().catch(() => {});
+    }, 15000);
+  }
+
+  async function pollActivePanel() {
+    if (state.pollBusy) return;
+    if (document.visibilityState === "hidden") return;
+    if (!state.token) return;
+    if (state.activePanel !== "orders" && state.activePanel !== "stats") return;
+    state.pollBusy = true;
+    try {
+      if (state.activePanel === "orders") {
+        const before = state.ordersFingerprint;
+        await loadOrders({ silent: true });
+        const after = state.ordersFingerprint;
+        if (before && after && before !== after) {
+          setRefreshStatus(`새 주문이 반영되었습니다 · ${nowTimeLabel()}`, true);
+        } else {
+          setRefreshStatus(`자동 갱신 · ${nowTimeLabel()}`);
+        }
+      } else if (state.activePanel === "stats") {
+        await loadStats({ silent: true });
+        setRefreshStatus(`자동 갱신 · ${nowTimeLabel()}`);
+      }
+    } finally {
+      state.pollBusy = false;
+    }
   }
 
   async function detectMode() {
@@ -538,24 +609,26 @@
     });
   }
 
-  async function loadOrders() {
+  async function loadOrders(options = {}) {
+    const silent = !!options.silent;
     if (state.mode === "local") {
       const data = await api(
         `/api/admin/orders?date_from=${encodeURIComponent(els.dateFrom.value || "")}&date_to=${encodeURIComponent(els.dateTo.value || "")}`
       );
       state.orders = data.rows || [];
-      renderOrders(state.orders);
-      return;
+    } else {
+      let text = "";
+      try {
+        const res = await fetch(rawUrl("data/orders.csv"), { cache: "no-store" });
+        text = res.ok ? await res.text() : "";
+      } catch (_) {
+        text = "";
+      }
+      state.orders = filterOrders(parseCsv(text));
     }
-    let text = "";
-    try {
-      const res = await fetch(rawUrl("data/orders.csv"), { cache: "no-store" });
-      text = res.ok ? await res.text() : "";
-    } catch (_) {
-      text = "";
-    }
-    state.orders = filterOrders(parseCsv(text));
+    state.ordersFingerprint = ordersFingerprint(state.orders);
     renderOrders(state.orders);
+    if (!silent) setRefreshStatus(`조회 완료 · ${nowTimeLabel()}`);
   }
 
   function downloadOrders() {
@@ -1258,7 +1331,8 @@
     });
   }
 
-  async function loadStats() {
+  async function loadStats(options = {}) {
+    const silent = !!options.silent;
     const range = periodRange(state.statsPeriod);
     if (els.statsRangeLabel) els.statsRangeLabel.textContent = `${range.label} · ${range.from} ~ ${range.to}`;
     const rows = await fetchStatsRows(range.from, range.to);
@@ -1292,6 +1366,7 @@
     });
     const weekdayAll = WEEKDAYS.map((label) => ({ label: `${label}요일`, value: weekdayMap[label] }));
     renderDonut("chartWeekday", "emptyWeekday", "legendWeekday", null, rows.length ? weekdayAll : [], true);
+    if (!silent) setRefreshStatus(`조회 완료 · ${nowTimeLabel()}`);
   }
 
   function bindEvents() {
@@ -1306,14 +1381,23 @@
         showAdmin();
         setPanel("orders");
         await loadOrders();
+        restartPolling();
       } catch (err) {
         showError(els.loginError, err.message || "로그인 실패");
       }
     });
 
     els.logoutBtn.addEventListener("click", () => {
+      stopPolling();
       clearSession();
       showLogin();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        pollActivePanel().catch(() => {});
+        restartPolling();
+      }
     });
 
     els.navBtns.forEach((btn) => {
@@ -1395,6 +1479,7 @@
     if (ok) {
       setPanel("orders");
       await loadOrders();
+      restartPolling();
     }
   }
 
