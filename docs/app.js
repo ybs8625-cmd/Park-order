@@ -17,6 +17,9 @@ const el = {
   qtyPlus: document.getElementById("qtyPlus"),
   previewImage: document.getElementById("previewImage"),
   pickPrice: document.getElementById("pickPrice"),
+  galleryToggle: document.getElementById("galleryToggle"),
+  productGallery: document.getElementById("productGallery"),
+  galleryTrack: document.getElementById("galleryTrack"),
   addCartBtn: document.getElementById("addCartBtn"),
   cartItems: document.getElementById("cartItems"),
   cartCount: document.getElementById("cartCount"),
@@ -63,6 +66,45 @@ function currentColorImage() {
   if (!product) return "";
   const color = (product.colors || []).find((c) => c.id === state.color);
   return color?.image || product.image || "";
+}
+
+function productGalleryImages(product) {
+  if (!product) return [];
+  const list = [];
+  const push = (src) => {
+    if (src && !list.includes(src)) list.push(src);
+  };
+  if (Array.isArray(product.images)) product.images.forEach(push);
+  push(product.image);
+  (product.colors || []).forEach((c) => push(c.image));
+  return list;
+}
+
+function closeGallery() {
+  if (!el.productGallery) return;
+  el.productGallery.hidden = true;
+  if (el.galleryToggle) el.galleryToggle.textContent = "[사진보기]";
+}
+
+function renderGallery(product) {
+  const images = productGalleryImages(product);
+  if (!el.galleryTrack || !el.galleryToggle) return;
+  if (!images.length) {
+    el.galleryToggle.hidden = true;
+    closeGallery();
+    el.galleryTrack.innerHTML = "";
+    return;
+  }
+  el.galleryToggle.hidden = false;
+  el.galleryTrack.innerHTML = images.map((src) => `<img src="${src}" alt="" loading="lazy" />`).join("");
+}
+
+function toggleGallery() {
+  if (!el.productGallery || el.galleryToggle.hidden) return;
+  const open = el.productGallery.hidden;
+  el.productGallery.hidden = !open;
+  el.galleryToggle.textContent = open ? "[사진닫기]" : "[사진보기]";
+  if (open) el.productGallery.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function fillProductSelect() {
@@ -153,6 +195,8 @@ function updatePicker() {
   } else {
     el.previewImage.hidden = true;
   }
+
+  renderGallery(product);
 
   if (state.quantity > stock) state.quantity = Math.max(stock, 1);
   if (stock <= 0) state.quantity = 1;
@@ -428,10 +472,13 @@ el.productSelect.addEventListener("change", () => {
   state.color = "";
   state.size = "";
   state.quantity = 1;
+  closeGallery();
   fillColorSelect();
   fillSizeSelect();
   updatePicker();
 });
+
+el.galleryToggle?.addEventListener("click", toggleGallery);
 
 el.colorSelect.addEventListener("change", () => {
   state.color = el.colorSelect.value;

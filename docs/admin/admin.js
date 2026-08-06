@@ -64,9 +64,8 @@
     pName: document.getElementById("pName"),
     pPrice: document.getElementById("pPrice"),
     pDesc: document.getElementById("pDesc"),
-    pImage: document.getElementById("pImage"),
+    pImageList: document.getElementById("pImageList"),
     pImageFile: document.getElementById("pImageFile"),
-    pImagePreview: document.getElementById("pImagePreview"),
     colorChecks: document.getElementById("colorChecks"),
     sizeChecks: document.getElementById("sizeChecks"),
     customColorInput: document.getElementById("customColorInput"),
@@ -85,6 +84,7 @@
     orders: [],
     editingProduct: null,
     extraColors: [],
+    editingImages: [],
   };
 
   function money(n) {
@@ -711,6 +711,29 @@
     buildStockEditor(colors, sizes, stock);
   }
 
+  function normalizeImages(product) {
+    if (!product) return [];
+    if (Array.isArray(product.images) && product.images.length) return product.images.slice();
+    return product.image ? [product.image] : [];
+  }
+
+  function renderImageList() {
+    if (!state.editingImages.length) {
+      els.pImageList.innerHTML = `<p class="field-hint">등록된 이미지가 없습니다.</p>`;
+      return;
+    }
+    els.pImageList.innerHTML = state.editingImages
+      .map(
+        (src, idx) => `
+      <div class="image-item" data-idx="${idx}">
+        <img src="${productImageSrc(src)}" alt="" />
+        ${idx === 0 ? `<span class="badge">대표</span>` : ""}
+        <button type="button" class="remove-img" data-remove-img="${idx}" aria-label="삭제">×</button>
+      </div>`
+      )
+      .join("");
+  }
+
   function openProductModal(product) {
     state.editingProduct = product;
     els.productModal.hidden = false;
@@ -722,8 +745,7 @@
       els.pName.value = product.name || "";
       els.pPrice.value = product.price || 0;
       els.pDesc.value = product.description || "";
-      els.pImage.value = product.image || "";
-      els.pImagePreview.src = productImageSrc(product.image);
+      state.editingImages = normalizeImages(product);
       const presetIds = new Set(COLOR_PRESETS.map((c) => c.id));
       state.extraColors = (product.colors || [])
         .filter((c) => !presetIds.has(c.id))
@@ -735,20 +757,21 @@
       els.modalTitle.textContent = "신규 상품 등록";
       els.productForm.reset();
       els.productId.value = "";
-      els.pImage.value = "";
-      els.pImagePreview.removeAttribute("src");
       els.pPrice.value = 29000;
+      state.editingImages = [];
       state.extraColors = [];
       renderColorChecks(["black", "white"]);
       renderSizeChecks(["S", "M", "L", "XL", "XXL"]);
       buildStockEditor(readSelectedColors(), readSelectedSizes(), {});
     }
+    renderImageList();
     els.pImageFile.value = "";
   }
 
   function closeProductModal() {
     els.productModal.hidden = true;
     state.editingProduct = null;
+    state.editingImages = [];
   }
 
   async function fileToBytes(file) {
@@ -764,10 +787,10 @@
       const res = await fetch("/api/admin/upload", { method: "POST", headers, body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "이미지 업로드 실패");
-      return data.local_path || data.docs_path;
+      return state.mode === "local" ? data.local_path || data.docs_path : data.docs_path || data.local_path;
     }
     const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const filename = `upload-${Date.now()}.${ext}`;
+    const filename = `upload-${Date.now()}-${Math.random().toString(16).slice(2, 6)}.${ext}`;
     const docsPath = `docs/images/${filename}`;
     const staticPath = `static/images/${filename}`;
     const bytes = await fileToBytes(file);
@@ -780,11 +803,23 @@
     return `./images/${filename}`;
   }
 
+  async function handleImageFiles(fileList) {
+    const files = [...(fileList || [])];
+    if (!files.length) return;
+    for (const file of files) {
+      const path = await uploadImage(file);
+      state.editingImages.push(path);
+    }
+    renderImageList();
+    els.pImageFile.value = "";
+  }
+
   function buildProductPayload() {
     const existing = state.editingProduct;
     const colors = readSelectedColors(existing?.colors || []);
     const sizes = readSelectedSizes(existing?.sizes || []);
-    const image = els.pImage.value || existing?.image || "";
+    const images = state.editingImages.slice();
+    const image = images[0] || existing?.image || "";
     colors.forEach((c) => {
       if (!c.image) c.image = image;
     });
@@ -795,6 +830,7 @@
       price: Number(els.pPrice.value || 0),
       description: els.pDesc.value.trim(),
       image,
+      images,
       colors,
       sizes,
       stock: readStockFromEditor(),
@@ -803,16 +839,20 @@
 
   async function saveProduct(event) {
     event.preventDefault();
+    // pending files not yet uploaded
+    if (els.pImageFile.files?.length) {
+      await handleImageFiles(els.pImageFile.files);
+    }
     const payload = buildProductPayload();
     if (!payload.name || !payload.brand || !payload.colors.length || !payload.sizes.length) {
       alert("필수 항목을 입력하세요.");
       return;
     }
-    if (els.pImageFile.files?.[0]) {
-      payload.image = await uploadImage(els.pImageFile.files[0]);
-      payload.colors = payload.colors.map((c) => ({ ...c, image: c.image || payload.image }));
-      els.pImage.value = payload.image;
+    if (!payload.images.length) {
+      alert("상품 이미지를 1장 이상 등록하세요.");
+      return;
     }
+    payload.colors = payload.colors.map((c) => ({ ...c, image: c.image || payload.image }));
 
     if (state.mode === "local") {
       if (state.editingProduct) {
@@ -940,6 +980,15 @@
         e.preventDefault();
         addCustomColor();
       }
+    });
+    els.pImageFile.addEventListener("change", () => {
+      handleImageFiles(els.pImageFile.files).catch((err) => alert(err.message || "업로드 실패"));
+    });
+    els.pImageList.addEventListener("click", (e) => {
+      const idx = e.target.getAttribute("data-remove-img");
+      if (idx == null) return;
+      state.editingImages.splice(Number(idx), 1);
+      renderImageList();
     });
 
     els.productsBody.addEventListener("click", (e) => {

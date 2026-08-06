@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./admin.css?v=4" />
+  <link rel="stylesheet" href="./admin.css?v=5" />
 </head>
 <body>
   <div class="bg"></div>
@@ -155,14 +155,14 @@
           </label>
         </div>
 
-        <label class="full">
-          <span>대표 이미지</span>
+        <div class="full">
+          <span class="label">상품 이미지 (여러 장 등록 가능)</span>
+          <div id="pImageList" class="image-list"></div>
           <div class="image-row">
-            <img id="pImagePreview" alt="" />
-            <input type="file" id="pImageFile" accept="image/*" />
+            <input type="file" id="pImageFile" accept="image/*" multiple />
           </div>
-          <input type="hidden" id="pImage" />
-        </label>
+          <p class="field-hint">첫 번째 이미지가 대표 썸네일로 사용됩니다. 추가 이미지는 주문 페이지 [사진보기]에서 보입니다.</p>
+        </div>
 
         <div class="full">
           <span class="label">색상</span>
@@ -193,6 +193,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="../config.js?v=10"></script>
-  <script src="./admin.js?v=5"></script>
+  <script src="./admin.js?v=6"></script>
 </body>
 </html>

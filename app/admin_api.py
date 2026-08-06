@@ -49,6 +49,7 @@ class ProductBody(BaseModel):
     price: int
     description: str = ""
     image: str = ""
+    images: list[str] = Field(default_factory=list)
     colors: list[dict[str, Any]] = Field(default_factory=list)
     sizes: list[dict[str, Any]] = Field(default_factory=list)
     stock: dict[str, dict[str, int]] = Field(default_factory=dict)
@@ -238,6 +239,7 @@ def create_product(body: ProductBody, authorization: str | None = Header(default
         "price": int(body.price),
         "description": body.description,
         "image": body.image or "/static/images/nike.svg",
+        "images": body.images or ([body.image] if body.image else ["/static/images/nike.svg"]),
         "colors": body.colors or [{"id": "black", "name": "블랙", "image": "/static/images/nike-black.svg"}],
         "sizes": body.sizes or catalog.get("default_sizes") or [],
         "stock": body.stock or {},
@@ -271,6 +273,7 @@ def update_product(
         "price": int(body.price),
         "description": body.description,
         "image": body.image or products[idx].get("image"),
+        "images": body.images if body.images is not None else products[idx].get("images") or [],
         "colors": body.colors,
         "sizes": body.sizes,
         "stock": body.stock,
