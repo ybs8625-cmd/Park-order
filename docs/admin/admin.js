@@ -1,6 +1,9 @@
 (() => {
   const TOKEN_KEY = "park_admin_token";
+  const SESSION_KEY = "park_admin_ok";
   const GITHUB_API = "https://api.github.com";
+  const DEFAULT_OWNER = "ybs8625-cmd";
+  const DEFAULT_REPO = "Park-order";
   const DEFAULT_SIZES = [
     { id: "S", label: "S (90)" },
     { id: "M", label: "M (95)" },
@@ -176,6 +179,11 @@
   }
 
   async function detectMode() {
+    if (location.hostname.includes("github.io") || location.protocol === "file:") {
+      state.mode = "pages";
+      state.config = window.PARK_ORDER_CONFIG || null;
+      return;
+    }
     try {
       const res = await fetch("/api/health", { cache: "no-store" });
       if (res.ok) {
@@ -212,16 +220,24 @@
   }
 
   function cfgOwner() {
-    return state.config?.githubOwner || state.config?.owner || "";
+    return state.config?.githubOwner || state.config?.owner || DEFAULT_OWNER;
   }
 
   function cfgRepo() {
-    return state.config?.githubRepo || state.config?.repo || "";
+    return state.config?.githubRepo || state.config?.repo || DEFAULT_REPO;
+  }
+
+  function branch() {
+    return state.config?.branch || "master";
+  }
+
+  function rawUrl(path) {
+    return `https://raw.githubusercontent.com/${cfgOwner()}/${cfgRepo()}/${branch()}/${path}?t=${Date.now()}`;
   }
 
   function ghHeaders(extra = {}) {
-    if (!state.config?.token || !cfgOwner() || !cfgRepo()) {
-      throw new Error("GitHub 토큰이 없습니다. Pages 배포(ORDER_WRITE_TOKEN)를 확인하세요.");
+    if (!state.config?.token) {
+      throw new Error("GitHub 쓰기 토큰이 없습니다. ORDER_WRITE_TOKEN / Pages 배포를 확인하세요.");
     }
     return {
       Accept: "application/vnd.github+json",
@@ -229,10 +245,6 @@
       "X-GitHub-Api-Version": "2022-11-28",
       ...extra,
     };
-  }
-
-  function branch() {
-    return state.config?.branch || "master";
   }
 
   function decodeGithubContent(content) {
@@ -323,34 +335,62 @@
     return obj;
   }
 
+  async function fetchAdminCredentials() {
+    const res = await fetch(rawUrl("data/admin.json"), { cache: "no-store" });
+    if (!res.ok) throw new Error("관리자 정보를 불러오지 못했습니다.");
+    return res.json();
+  }
+
   async function loadAdminFile() {
-    const file = await ghGet("data/admin.json");
-    state.adminSha = file.sha;
-    return JSON.parse(decodeGithubContent(file.content));
+    try {
+      const file = await ghGet("data/admin.json");
+      state.adminSha = file.sha;
+      return JSON.parse(decodeGithubContent(file.content));
+    } catch (_) {
+      return fetchAdminCredentials();
+    }
   }
 
   async function saveAdminFile(admin) {
+    let sha = state.adminSha;
+    if (!sha) {
+      try {
+        const file = await ghGet("data/admin.json");
+        sha = file.sha;
+      } catch (_) {
+        sha = null;
+      }
+    }
     const res = await ghPutText(
       "data/admin.json",
       `${JSON.stringify(admin, null, 2)}\n`,
       "chore: update admin password",
-      state.adminSha
+      sha
     );
     state.adminSha = res.content.sha;
   }
 
   async function loadCatalogPages() {
-    const jsonFile = await ghGet("docs/data/products.json");
-    state.catalogJsonSha = jsonFile.sha;
-    state.catalog = JSON.parse(decodeGithubContent(jsonFile.content));
+    // 조회는 raw로, 저장용 sha만 API로 가져온다
+    const res = await fetch(rawUrl("docs/data/products.json"), { cache: "no-store" });
+    if (!res.ok) throw new Error("상품 목록을 불러오지 못했습니다.");
+    state.catalog = await res.json();
     if (!Array.isArray(state.catalog.default_sizes)) {
       state.catalog.default_sizes = DEFAULT_SIZES.slice();
     }
-    try {
-      const yamlFile = await ghGet("data/products.yaml");
-      state.catalogYamlSha = yamlFile.sha;
-    } catch (_) {
-      state.catalogYamlSha = null;
+    if (state.config?.token) {
+      try {
+        const jsonFile = await ghGet("docs/data/products.json");
+        state.catalogJsonSha = jsonFile.sha;
+      } catch (_) {
+        state.catalogJsonSha = null;
+      }
+      try {
+        const yamlFile = await ghGet("data/products.yaml");
+        state.catalogYamlSha = yamlFile.sha;
+      } catch (_) {
+        state.catalogYamlSha = null;
+      }
     }
     return state.catalog;
   }
@@ -368,6 +408,12 @@
     state.catalog = docsCatalog;
   }
 
+  function clearSession() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(SESSION_KEY);
+    state.token = "";
+  }
+
   async function loginLocal(username, password) {
     const data = await api("/api/admin/login", {
       method: "POST",
@@ -375,19 +421,23 @@
     });
     state.token = data.token;
     localStorage.setItem(TOKEN_KEY, state.token);
+    localStorage.setItem(SESSION_KEY, "1");
   }
 
   async function loginPages(username, password) {
-    const admin = await loadAdminFile();
+    const admin = await fetchAdminCredentials();
     if (username !== admin.username || password !== admin.password) {
       throw new Error("아이디 또는 비밀번호가 올바르지 않습니다.");
     }
     state.token = btoa(unescape(encodeURIComponent(`${username}:${Date.now()}`)));
     localStorage.setItem(TOKEN_KEY, state.token);
+    localStorage.setItem(SESSION_KEY, "1");
   }
 
   async function ensureSession() {
-    if (!state.token) {
+    // 로그인 화면을 기본으로 두고, 유효 세션만 통과
+    if (!state.token || localStorage.getItem(SESSION_KEY) !== "1") {
+      clearSession();
       showLogin();
       return false;
     }
@@ -397,14 +447,15 @@
         showAdmin();
         return true;
       } catch (_) {
-        localStorage.removeItem(TOKEN_KEY);
-        state.token = "";
+        clearSession();
         showLogin();
         return false;
       }
     }
-    showAdmin();
-    return true;
+    // Pages: 저장된 세션이 있어도 로그인 폼을 먼저 보여줌(자동 입장 방지)
+    clearSession();
+    showLogin();
+    return false;
   }
 
   function productImageSrc(path) {
@@ -464,8 +515,8 @@
     }
     let text = "";
     try {
-      const file = await ghGet("data/orders.csv");
-      text = decodeGithubContent(file.content);
+      const res = await fetch(rawUrl("data/orders.csv"), { cache: "no-store" });
+      text = res.ok ? await res.text() : "";
     } catch (_) {
       text = "";
     }
@@ -795,7 +846,7 @@
           json: { current_password, new_password },
         });
       } else {
-        const admin = await loadAdminFile();
+        const admin = await fetchAdminCredentials();
         if (current_password !== admin.password) throw new Error("현재 비밀번호가 올바르지 않습니다.");
         admin.password = new_password;
         await saveAdminFile(admin);
@@ -825,8 +876,7 @@
     });
 
     els.logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem(TOKEN_KEY);
-      state.token = "";
+      clearSession();
       showLogin();
     });
 
