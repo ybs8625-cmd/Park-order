@@ -35,14 +35,18 @@ def save_yaml(path: Path, data: dict[str, Any]) -> None:
         yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
 
-class OrderRequest(BaseModel):
+class CartItem(BaseModel):
     product_id: str
     color: str
     size: str
     quantity: int = Field(ge=1, le=99)
+
+
+class OrderRequest(BaseModel):
+    items: list[CartItem] = Field(min_length=1)
     name: str = Field(min_length=1, max_length=50)
     phone: str = Field(min_length=9, max_length=20)
-    address: str = Field(min_length=5, max_length=200)
+    address: str = Field(min_length=5, max_length=300)
     memo: str = Field(default="", max_length=500)
 
     @field_validator("name", "phone", "address", "memo", mode="before")
@@ -65,54 +69,75 @@ def catalog() -> dict[str, Any]:
 def create_order(payload: OrderRequest) -> dict[str, Any]:
     catalog_data = load_yaml(PRODUCTS_PATH)
     products = catalog_data.get("products") or []
-    product = next((p for p in products if p.get("id") == payload.product_id), None)
-    if not product:
-        raise HTTPException(status_code=400, detail="존재하지 않는 품목입니다.")
-
-    color_ids = {c.get("id") for c in product.get("colors") or []}
-    if payload.color not in color_ids:
-        raise HTTPException(status_code=400, detail="선택할 수 없는 색상입니다.")
-
     size_ids = {s.get("id") for s in catalog_data.get("sizes") or []}
-    if payload.size not in size_ids:
-        raise HTTPException(status_code=400, detail="선택할 수 없는 사이즈입니다.")
-
-    stock = ((product.get("stock") or {}).get(payload.color) or {}).get(payload.size, 0)
-    if payload.quantity > stock:
-        raise HTTPException(status_code=400, detail=f"남은 수량이 부족합니다. (남은 수량: {stock})")
-
-    # Decrease stock
-    product["stock"][payload.color][payload.size] = stock - payload.quantity
-    save_yaml(PRODUCTS_PATH, catalog_data)
-
-    unit_price = int(product.get("price") or 0)
     shipping_fee = int(catalog_data.get("shipping_fee") or 3500)
-    item_total = unit_price * payload.quantity
-    total = item_total + shipping_fee
 
-    color_name = next(
-        (c.get("name") for c in product.get("colors") or [] if c.get("id") == payload.color),
-        payload.color,
-    )
-    size_label = next(
-        (s.get("label") for s in catalog_data.get("sizes") or [] if s.get("id") == payload.size),
-        payload.size,
-    )
+    # Aggregate same SKU quantities first
+    aggregated: dict[tuple[str, str, str], int] = {}
+    for item in payload.items:
+        key = (item.product_id, item.color, item.size)
+        aggregated[key] = aggregated.get(key, 0) + item.quantity
+
+    order_items: list[dict[str, Any]] = []
+    item_total = 0
+
+    for (product_id, color, size), quantity in aggregated.items():
+        product = next((p for p in products if p.get("id") == product_id), None)
+        if not product:
+            raise HTTPException(status_code=400, detail=f"존재하지 않는 품목입니다: {product_id}")
+
+        color_ids = {c.get("id") for c in product.get("colors") or []}
+        if color not in color_ids:
+            raise HTTPException(status_code=400, detail=f"선택할 수 없는 색상입니다: {product.get('name')}")
+        if size not in size_ids:
+            raise HTTPException(status_code=400, detail=f"선택할 수 없는 사이즈입니다: {size}")
+
+        stock = ((product.get("stock") or {}).get(color) or {}).get(size, 0)
+        if quantity > stock:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{product.get('name')} 남은 수량이 부족합니다. (남은 수량: {stock})",
+            )
+
+        product["stock"][color][size] = stock - quantity
+
+        unit_price = int(product.get("price") or 0)
+        line_total = unit_price * quantity
+        item_total += line_total
+
+        color_name = next(
+            (c.get("name") for c in product.get("colors") or [] if c.get("id") == color),
+            color,
+        )
+        size_label = next(
+            (s.get("label") for s in catalog_data.get("sizes") or [] if s.get("id") == size),
+            size,
+        )
+
+        order_items.append(
+            {
+                "product_id": product_id,
+                "product_name": product.get("name"),
+                "brand": product.get("brand"),
+                "color": color,
+                "color_name": color_name,
+                "size": size,
+                "size_label": size_label,
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "line_total": line_total,
+            }
+        )
+
+    save_yaml(PRODUCTS_PATH, catalog_data)
 
     order = {
         "id": str(uuid4()),
         "created_at": datetime.now(KST).isoformat(timespec="seconds"),
-        "product_id": payload.product_id,
-        "product_name": product.get("name"),
-        "color": payload.color,
-        "color_name": color_name,
-        "size": payload.size,
-        "size_label": size_label,
-        "quantity": payload.quantity,
-        "unit_price": unit_price,
+        "items": order_items,
         "item_total": item_total,
         "shipping_fee": shipping_fee,
-        "total": total,
+        "total": item_total + shipping_fee,
         "customer": {
             "name": payload.name,
             "phone": payload.phone,
