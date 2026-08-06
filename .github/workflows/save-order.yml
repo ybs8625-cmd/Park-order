@@ -1,4 +1,4 @@
-name: Save Order to YAML
+name: Save Order to CSV
 
 on:
   repository_dispatch:
@@ -17,17 +17,18 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install PyYAML
-        run: pip install pyyaml==6.0.2
-
-      - name: Append order and commit
+      - name: Append order rows to CSV and commit
         env:
           ORDER_JSON: ${{ toJson(github.event.client_payload.order) }}
         run: |
           python <<'PY'
-          import json, os
+          import csv, json, os
           from pathlib import Path
-          import yaml
+
+          HEADERS = [
+              "주문번호", "주문시간", "상태", "이름", "연락처", "주소", "메모",
+              "품목", "색상", "사이즈", "수량", "단가", "금액", "상품합계", "배송비", "결제합계",
+          ]
 
           raw = os.environ.get("ORDER_JSON") or ""
           if not raw or raw == "null":
@@ -37,40 +38,60 @@ jobs:
           if not isinstance(order, dict) or "주문번호" not in order:
               raise SystemExit("주문 형식이 올바르지 않습니다.")
 
-          root = Path(".")
-          orders_path = root / "data" / "orders.yaml"
-          single_dir = root / "data" / "orders"
-          single_dir.mkdir(parents=True, exist_ok=True)
+          path = Path("data/orders.csv")
+          path.parent.mkdir(parents=True, exist_ok=True)
+          order_id = str(order.get("주문번호") or "")
+          customer = order.get("주문자") or {}
+          lines = order.get("주문내용") or []
 
-          data = {}
-          if orders_path.exists():
-              data = yaml.safe_load(orders_path.read_text(encoding="utf-8")) or {}
-          orders = data.get("orders") or []
-          if any(o.get("주문번호") == order.get("주문번호") for o in orders if isinstance(o, dict)):
-              print("이미 저장된 주문번호입니다. 건너뜁니다.")
+          existing_ids = set()
+          file_exists = path.exists() and path.stat().st_size > 0
+          if file_exists:
+              with path.open("r", encoding="utf-8-sig", newline="") as f:
+                  for row in csv.DictReader(f):
+                      oid = (row.get("주문번호") or "").strip()
+                      if oid:
+                          existing_ids.add(oid)
+
+          if order_id and order_id in existing_ids:
+              print(f"이미 저장된 주문번호입니다: {order_id}")
           else:
-              orders.append(order)
-              data["orders"] = orders
-              orders_path.write_text(
-                  yaml.safe_dump(data, allow_unicode=True, sort_keys=False, default_flow_style=False, width=120),
-                  encoding="utf-8",
-              )
-              single_path = single_dir / f"{order['주문번호']}.yaml"
-              single_path.write_text(
-                  yaml.safe_dump(order, allow_unicode=True, sort_keys=False, default_flow_style=False, width=120),
-                  encoding="utf-8",
-              )
-              print(f"저장 완료: {order['주문번호']}")
+              rows = []
+              for line in lines:
+                  rows.append({
+                      "주문번호": order.get("주문번호", ""),
+                      "주문시간": order.get("주문시간", ""),
+                      "상태": order.get("상태", ""),
+                      "이름": customer.get("이름", ""),
+                      "연락처": customer.get("연락처", ""),
+                      "주소": customer.get("주소", ""),
+                      "메모": customer.get("메모", ""),
+                      "품목": line.get("품목", ""),
+                      "색상": line.get("색상", ""),
+                      "사이즈": line.get("사이즈", ""),
+                      "수량": line.get("수량", ""),
+                      "단가": line.get("단가", ""),
+                      "금액": line.get("금액", ""),
+                      "상품합계": order.get("상품합계", ""),
+                      "배송비": order.get("배송비", ""),
+                      "결제합계": order.get("결제합계", ""),
+                  })
+              with path.open("a", encoding="utf-8-sig", newline="") as f:
+                  writer = csv.DictWriter(f, fieldnames=HEADERS)
+                  if not file_exists:
+                      writer.writeheader()
+                  writer.writerows(rows)
+              print(f"CSV 추가 완료: {order_id} ({len(rows)}행)")
           PY
 
-      - name: Commit order files
+      - name: Commit CSV
         run: |
           git config user.name "park-order-bot"
           git config user.email "park-order-bot@users.noreply.github.com"
-          git add data/orders.yaml data/orders/
+          git add data/orders.csv
           if git diff --staged --quiet; then
             echo "변경 없음"
             exit 0
           fi
-          git commit -m "Add new park order"
+          git commit -m "Append park order to CSV"
           git push

@@ -15,11 +15,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
+from app.csv_orders import append_order_csv
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
-ORDERS_DIR = DATA_DIR / "orders"
 PRODUCTS_PATH = DATA_DIR / "products.yaml"
-ORDERS_PATH = DATA_DIR / "orders.yaml"
+ORDERS_CSV_PATH = DATA_DIR / "orders.csv"
 KST = timezone(timedelta(hours=9))
 
 
@@ -63,7 +64,7 @@ def save_yaml(path: Path, data: dict[str, Any]) -> None:
 
 
 def push_order_to_github(order: dict[str, Any]) -> None:
-    """Trigger GitHub Action to commit order YAML into the repository."""
+    """Trigger GitHub Action to append order rows into data/orders.csv."""
     token = os.getenv("ORDER_WRITE_TOKEN", "").strip()
     owner = os.getenv("GITHUB_OWNER", "ybs8625-cmd").strip()
     repo = os.getenv("GITHUB_REPO", "Park-order").strip()
@@ -199,18 +200,10 @@ def create_order(payload: OrderRequest) -> dict[str, Any]:
         "결제합계": item_total + shipping_fee,
     }
 
-    orders_data = load_yaml(ORDERS_PATH)
-    orders = orders_data.get("orders") or []
-    orders.append(order)
-    orders_data["orders"] = orders
-    save_yaml(ORDERS_PATH, orders_data)
+    # 하나의 CSV에 계속 이어붙임
+    append_order_csv(ORDERS_CSV_PATH, order)
 
-    # 개별 주문 파일도 남김
-    ORDERS_DIR.mkdir(parents=True, exist_ok=True)
-    single_path = ORDERS_DIR / f"{order_id}.yaml"
-    save_yaml(single_path, order)
-
-    # GitHub 저장소에도 YAML로 남김 (ORDER_WRITE_TOKEN 있을 때)
+    # GitHub 저장소 CSV에도 반영
     push_order_to_github(order)
 
     return {

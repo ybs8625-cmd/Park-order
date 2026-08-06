@@ -282,38 +282,36 @@ function formatOrderTime(date = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-function orderToYaml(order) {
-  const lines = [];
-  lines.push(`주문번호: ${order["주문번호"]}`);
-  lines.push(`주문시간: ${order["주문시간"]}`);
-  lines.push(`상태: ${order["상태"]}`);
-  lines.push("주문자:");
-  lines.push(`  이름: ${order["주문자"]["이름"]}`);
-  lines.push(`  연락처: ${order["주문자"]["연락처"]}`);
-  lines.push(`  주소: ${order["주문자"]["주소"]}`);
-  lines.push(`  메모: ${order["주문자"]["메모"]}`);
-  lines.push("주문내용:");
-  for (const item of order["주문내용"]) {
-    lines.push(`  - 품목: ${item["품목"]}`);
-    lines.push(`    색상: ${item["색상"]}`);
-    lines.push(`    사이즈: ${item["사이즈"]}`);
-    lines.push(`    수량: ${item["수량"]}`);
-    lines.push(`    단가: ${item["단가"]}`);
-    lines.push(`    금액: ${item["금액"]}`);
-  }
-  lines.push(`상품합계: ${order["상품합계"]}`);
-  lines.push(`배송비: ${order["배송비"]}`);
-  lines.push(`결제합계: ${order["결제합계"]}`);
-  lines.push("");
-  return lines.join("\n");
+function csvEscape(value) {
+  const text = String(value ?? "");
+  if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
 }
 
-function downloadYaml(order) {
-  const blob = new Blob([orderToYaml(order)], { type: "text/yaml;charset=utf-8" });
+function orderToCsv(order) {
+  const headers = [
+    "주문번호", "주문시간", "상태", "이름", "연락처", "주소", "메모",
+    "품목", "색상", "사이즈", "수량", "단가", "금액", "상품합계", "배송비", "결제합계",
+  ];
+  const rows = [headers.join(",")];
+  const customer = order["주문자"] || {};
+  for (const item of order["주문내용"] || []) {
+    rows.push([
+      order["주문번호"], order["주문시간"], order["상태"],
+      customer["이름"], customer["연락처"], customer["주소"], customer["메모"],
+      item["품목"], item["색상"], item["사이즈"], item["수량"], item["단가"], item["금액"],
+      order["상품합계"], order["배송비"], order["결제합계"],
+    ].map(csvEscape).join(","));
+  }
+  return "\uFEFF" + rows.join("\n") + "\n";
+}
+
+function downloadCsv(order) {
+  const blob = new Blob([orderToCsv(order)], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `주문_${order["주문번호"]}.yaml`;
+  a.download = `주문_${order["주문번호"]}.csv`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -643,11 +641,11 @@ el.form.addEventListener("submit", async (event) => {
     try {
       const gh = await submitOrderToGitHub(data.order);
       if (IS_PAGES && !gh.ok) {
-        downloadYaml(data.order);
+        downloadCsv(data.order);
       }
     } catch (ghErr) {
       if (IS_PAGES) {
-        downloadYaml(data.order);
+        downloadCsv(data.order);
         console.warn(ghErr);
       } else {
         console.warn(ghErr);
