@@ -17,9 +17,11 @@ const el = {
   qtyPlus: document.getElementById("qtyPlus"),
   previewImage: document.getElementById("previewImage"),
   pickPrice: document.getElementById("pickPrice"),
-  galleryToggle: document.getElementById("galleryToggle"),
   productGallery: document.getElementById("productGallery"),
   galleryTrack: document.getElementById("galleryTrack"),
+  photoLightbox: document.getElementById("photoLightbox"),
+  photoLightboxImage: document.getElementById("photoLightboxImage"),
+  photoLightboxClose: document.getElementById("photoLightboxClose"),
   addCartBtn: document.getElementById("addCartBtn"),
   cartItems: document.getElementById("cartItems"),
   cartCount: document.getElementById("cartCount"),
@@ -80,31 +82,36 @@ function productGalleryImages(product) {
   return list;
 }
 
+function closeLightbox() {
+  if (!el.photoLightbox) return;
+  el.photoLightbox.hidden = true;
+  if (el.photoLightboxImage) el.photoLightboxImage.removeAttribute("src");
+}
+
+function openLightbox(src) {
+  if (!el.photoLightbox || !el.photoLightboxImage || !src) return;
+  el.photoLightboxImage.src = src;
+  el.photoLightbox.hidden = false;
+}
+
 function closeGallery() {
   if (!el.productGallery) return;
   el.productGallery.hidden = true;
-  if (el.galleryToggle) el.galleryToggle.textContent = "[사진보기]";
+  if (el.galleryTrack) el.galleryTrack.innerHTML = "";
+  closeLightbox();
 }
 
 function renderGallery(product) {
   const images = productGalleryImages(product);
-  if (!el.galleryTrack || !el.galleryToggle) return;
+  if (!el.galleryTrack || !el.productGallery) return;
   if (!images.length) {
-    el.galleryToggle.hidden = true;
     closeGallery();
-    el.galleryTrack.innerHTML = "";
     return;
   }
-  el.galleryToggle.hidden = false;
-  el.galleryTrack.innerHTML = images.map((src) => `<img src="${src}" alt="" loading="lazy" />`).join("");
-}
-
-function toggleGallery() {
-  if (!el.productGallery || el.galleryToggle.hidden) return;
-  const open = el.productGallery.hidden;
-  el.productGallery.hidden = !open;
-  el.galleryToggle.textContent = open ? "[사진닫기]" : "[사진보기]";
-  if (open) el.productGallery.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  el.galleryTrack.innerHTML = images
+    .map((src) => `<img src="${src}" alt="" loading="lazy" data-full="${src}" />`)
+    .join("");
+  el.productGallery.hidden = false;
 }
 
 function fillProductSelect() {
@@ -467,6 +474,24 @@ async function resetPage() {
   requestAnimationFrame(pinCart);
 }
 
+el.galleryTrack?.addEventListener("click", (event) => {
+  const img = event.target.closest("img[data-full]");
+  if (!img) return;
+  openLightbox(img.dataset.full);
+});
+
+el.photoLightboxClose?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  closeLightbox();
+});
+
+el.photoLightbox?.addEventListener("click", (event) => {
+  // 배경 또는 큰 사진 다시 클릭 시 닫기
+  if (event.target === el.photoLightbox || event.target === el.photoLightboxImage) {
+    closeLightbox();
+  }
+});
+
 el.productSelect.addEventListener("change", () => {
   state.productId = el.productSelect.value;
   state.color = "";
@@ -477,8 +502,6 @@ el.productSelect.addEventListener("change", () => {
   fillSizeSelect();
   updatePicker();
 });
-
-el.galleryToggle?.addEventListener("click", toggleGallery);
 
 el.colorSelect.addEventListener("change", () => {
   state.color = el.colorSelect.value;

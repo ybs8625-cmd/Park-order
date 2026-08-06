@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./style.css?v=11" />
+  <link rel="stylesheet" href="./style.css?v=12" />
 </head>
 <body>
   <div class="bg"></div>
@@ -62,7 +62,6 @@
             <div class="pick-meta">
               <div class="pick-thumb">
                 <img id="previewImage" alt="" hidden />
-                <button type="button" class="gallery-toggle" id="galleryToggle" hidden>[사진보기]</button>
               </div>
               <div>
                 <p class="pick-price" id="pickPrice">-</p>
@@ -167,6 +166,11 @@
     </div>
   </aside>
 
+  <div class="photo-lightbox" id="photoLightbox" hidden>
+    <button type="button" class="photo-lightbox-close" id="photoLightboxClose" aria-label="닫기">닫기</button>
+    <img id="photoLightboxImage" alt="" />
+  </div>
+
   <div class="toast" id="toast" hidden role="status" aria-live="polite">
     <div class="toast-card">
       <p class="toast-title">주문이 정상적으로 완료 되었습니다.</p>
@@ -177,6 +181,6 @@
 
   <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <script src="./config.js?v=10"></script>
-  <script src="./app.js?v=11"></script>
+  <script src="./app.js?v=12"></script>
 </body>
 </html>

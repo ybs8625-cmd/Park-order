@@ -333,19 +333,6 @@ h1 {
   background: #eef3f1;
 }
 
-.gallery-toggle {
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
 .product-gallery {
   margin-top: 12px;
   border: 1px solid var(--line);
@@ -372,6 +359,49 @@ h1 {
   background: #eef3f1;
   scroll-snap-align: start;
   box-shadow: 0 8px 24px rgba(15, 28, 36, 0.1);
+  cursor: zoom-in;
+}
+
+.photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 28, 36, 0.78);
+  cursor: zoom-out;
+}
+
+.photo-lightbox[hidden] {
+  display: none !important;
+}
+
+.photo-lightbox img {
+  max-width: min(920px, 100%);
+  max-height: calc(100vh - 80px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 14px;
+  background: #0f1c24;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.photo-lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .pick-price {
